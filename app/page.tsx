@@ -312,7 +312,7 @@ ${title ? `이번 화 제목: ${title}` : ""}
 시점: ${pov === "first" ? "1인칭" : "3인칭"}
 ${synopsis ? `줄거리/설정: ${synopsis}` : ""}
 ${charDesc ? `등장인물:\n${charDesc}` : ""}
-분량: 1000~1500자, 반드시 완성된 문장으로 끝내기
+분량: 1500자 이상, 반드시 완성된 엔딩 문장으로 마무리할 것. 절대 문장 중간에 끊지 말 것.
 규칙: 제목을 먼저 쓰고 한 줄 띄우기. 생생한 묘사와 대화 포함. 마크다운 없이 순수 텍스트로.`;
     try {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 1000 }) });
@@ -339,10 +339,11 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
 
   async function generateNextEpisode() {
     const currentText = isEditing ? editedNovel : novel;
-    setCurrentEpisode(prev => prev + 1);
+    const nextEp = currentEpisode + 1;
+    setCurrentEpisode(nextEp);
     setNovel(""); setEditedNovel(""); setIsEditing(false); setSaveMsg("");
     setLoading(true);
-    const prompt = `아래는 소설의 이전 화 내용입니다. 이 내용을 바탕으로 자연스럽게 이어지는 다음 화를 써주세요. 500~800자, 마크다운 없이 순수 텍스트로.\n\n이전 화:\n${currentText}`;
+    const prompt = `당신은 한국 소설 작가입니다. 아래는 소설 ${currentEpisode}화의 내용입니다. 이 내용과 자연스럽게 이어지는 ${nextEp}화를 써주세요. 1500자 이상, 반드시 완성된 문장으로 마무리, 마크다운 없이 순수 텍스트로. 이전 내용을 절대 반복하지 말고 새로운 장면으로 시작하세요.\n\n이전 화 내용:\n${currentText}`;
     try {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 1000 }) });
       const data = await res.json();
