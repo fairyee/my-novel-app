@@ -25,22 +25,22 @@ const PRESET_TAGS = [
 ];
 
 const STYLES = [
-  { id: "lyrical", label: "🌸 감성/서정적" },
+  { id: "lyrical", label: "🌸 감성" },
   { id: "fast", label: "⚡ 빠른 전개" },
   { id: "dialogue", label: "💬 대화 위주" },
   { id: "descriptive", label: "🎨 묘사 위주" },
 ];
 
 const ENDINGS = [
-  { id: "happy", label: "😊 해피엔딩" },
-  { id: "sad", label: "😢 새드엔딩" },
+  { id: "happy", label: "😊 해피" },
+  { id: "sad", label: "😢 새드" },
   { id: "open", label: "🌫️ 열린 결말" },
 ];
 
 const RATINGS = [
-  { id: "all", label: "전체가", desc: "순수한 이야기" },
-  { id: "teen", label: "15+", desc: "약간의 긴장감" },
-  { id: "adult", label: "19+", desc: "성인 암시 포함" },
+  { id: "all", label: "전체가", desc: "순수" },
+  { id: "teen", label: "15+", desc: "긴장감" },
+  { id: "adult", label: "19+", desc: "성인 암시" },
 ];
 
 const POVS = [
@@ -122,38 +122,26 @@ export default function Home() {
 
   async function fetchPublicNovels() {
     let query = supabase.from("novels").select("*").eq("is_public", true);
-    if (searchQuery.trim()) {
-      query = query.or(`title.ilike.%${searchQuery}%,tags.ilike.%${searchQuery}%,genre.ilike.%${searchQuery}%`);
-    }
-    if (exploreTab === "popular") {
-      query = query.order("views", { ascending: false });
-    } else {
-      query = query.order("created_at", { ascending: false });
-    }
+    if (searchQuery.trim()) query = query.or(`title.ilike.%${searchQuery}%,tags.ilike.%${searchQuery}%,genre.ilike.%${searchQuery}%`);
+    query = exploreTab === "popular" ? query.order("views", { ascending: false }) : query.order("created_at", { ascending: false });
     const { data } = await query.limit(50);
     if (!data) { setPublicNovels([]); return; }
+    const { data: likeCounts } = await supabase.from("likes").select("novel_id");
+    const countMap: Record<string, number> = {};
+    (likeCounts || []).forEach((l: any) => { countMap[l.novel_id] = (countMap[l.novel_id] || 0) + 1; });
     if (user) {
       const { data: likeData } = await supabase.from("likes").select("novel_id").eq("user_id", user.id);
       const likedIds = new Set((likeData || []).map((l: any) => l.novel_id));
-      const { data: likeCounts } = await supabase.from("likes").select("novel_id");
-      const countMap: Record<string, number> = {};
-      (likeCounts || []).forEach((l: any) => { countMap[l.novel_id] = (countMap[l.novel_id] || 0) + 1; });
       setPublicNovels(data.map((n: Novel) => ({ ...n, is_liked: likedIds.has(n.id), like_count: countMap[n.id] || 0 })));
     } else {
-      const { data: likeCounts } = await supabase.from("likes").select("novel_id");
-      const countMap: Record<string, number> = {};
-      (likeCounts || []).forEach((l: any) => { countMap[l.novel_id] = (countMap[l.novel_id] || 0) + 1; });
       setPublicNovels(data.map((n: Novel) => ({ ...n, like_count: countMap[n.id] || 0 })));
     }
   }
 
   async function toggleLike(novelId: string, isLiked: boolean) {
     if (!user) { setShowAuth(true); return; }
-    if (isLiked) {
-      await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", novelId);
-    } else {
-      await supabase.from("likes").insert({ user_id: user.id, novel_id: novelId });
-    }
+    if (isLiked) await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", novelId);
+    else await supabase.from("likes").insert({ user_id: user.id, novel_id: novelId });
     fetchPublicNovels();
   }
 
@@ -173,23 +161,20 @@ export default function Home() {
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null); setView("create");
+    await supabase.auth.signOut(); setUser(null); setView("create");
   }
 
   async function saveNovel() {
     if (!user) { setShowAuth(true); return; }
     setSaving(true); setSaveMsg("");
     const content = isEditing ? editedNovel : novel;
-    const lines = content.split("\n");
-    const novelTitle = title || lines[0] || "제목 없음";
+    const novelTitle = title || content.split("\n")[0] || "제목 없음";
     const { error } = await supabase.from("novels").insert({
       user_id: user.id, title: novelTitle, content,
       genre: selectedGenre?.label || "", tags: selectedTags.join(", "),
       is_public: isPublic, views: 0,
     });
-    if (error) setSaveMsg("저장 실패 😢");
-    else setSaveMsg("저장됐어요! ✅");
+    setSaveMsg(error ? "저장 실패 😢" : "저장됐어요! ✅");
     setSaving(false);
     setTimeout(() => setSaveMsg(""), 3000);
   }
@@ -208,18 +193,15 @@ export default function Home() {
   function toggleTag(tag: string) {
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
   }
-
   function addCustomTag() {
     const t = customTag.trim();
     if (t && !selectedTags.includes(t)) setSelectedTags((prev) => [...prev, t]);
     setCustomTag("");
   }
-
   function addCharacter() {
     if (characters.length >= 5) return;
     setCharacters((prev) => [...prev, { id: Date.now(), name: "", desc: "", role: "조연" }]);
   }
-
   function removeCharacter(id: number) { setCharacters((prev) => prev.filter((c) => c.id !== id)); }
   function updateCharacter(id: number, field: keyof Character, value: string) {
     setCharacters((prev) => prev.map((c) => c.id === id ? { ...c, [field]: value } : c));
@@ -228,7 +210,6 @@ export default function Home() {
   async function generateNovel() {
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false); setSaveMsg("");
     const ratingLabel = rating === "all" ? "전체가" : rating === "teen" ? "15세 이상" : "성인 (암시 포함)";
-    const povLabel = pov === "first" ? "1인칭" : "3인칭";
     const styleLabel = STYLES.find(s => s.id === style)?.label || "자유";
     const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "자유";
     const charDesc = characters.filter(c => c.name || c.desc).map(c => `- ${c.role} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`).join("\n");
@@ -239,7 +220,7 @@ ${title ? `작품 제목: ${title}` : ""}
 문체: ${styleLabel}
 결말 방향: ${endingLabel}
 수위: ${ratingLabel}
-시점: ${povLabel}
+시점: ${pov === "first" ? "1인칭" : "3인칭"}
 ${synopsis ? `줄거리/설정: ${synopsis}` : ""}
 ${charDesc ? `등장인물:\n${charDesc}` : ""}
 분량: 500~800자
@@ -256,9 +237,8 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
   async function continueNovel() {
     setContinuing(true);
     const currentText = isEditing ? editedNovel : novel;
-    const prompt = `아래 소설을 자연스럽게 이어서 써주세요. 기존 문체와 분위기를 유지하고 300~500자 정도 추가해주세요. 이어지는 내용만 출력하세요.\n\n${currentText}`;
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 700 }) });
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `아래 소설을 자연스럽게 이어서 써주세요. 기존 문체와 분위기를 유지하고 300~500자 추가. 이어지는 내용만 출력.\n\n${currentText}`, tokens: 700 }) });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       const cont = currentText + "\n\n" + data.text;
@@ -280,33 +260,34 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
   }
 
   const NovelCard = ({ n, showActions = false }: { n: Novel; showActions?: boolean }) => (
-    <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 12, padding: 20, marginBottom: 12, cursor: "pointer" }}
+    <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, padding: "16px", marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s" }}
+      onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
+      onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
       onClick={() => openNovel(n)}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{n.title}</div>
-          <div style={{ fontSize: 12, color: "#5a4a6a" }}>{n.genre} {n.tags && `· ${n.tags.split(",").slice(0, 2).join(", ")}`}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</div>
+          <div style={{ fontSize: 11, color: "#5a4a6a" }}>{n.genre}{n.tags && ` · ${n.tags.split(",").slice(0, 2).join(", ")}`}</div>
         </div>
         {showActions && (
-          <div style={{ display: "flex", gap: 6, alignItems: "center", marginLeft: 8 }} onClick={(e) => e.stopPropagation()}>
-            <label style={{ position: "relative", width: 36, height: 20, cursor: "pointer" }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+            <label style={{ position: "relative", width: 32, height: 18, cursor: "pointer" }}>
               <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={n.is_public} onChange={() => togglePublic(n.id, n.is_public)} />
-              <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: n.is_public ? "#7c3aed" : "#2d2040", borderRadius: 20, transition: "0.3s" }}>
-                <span style={{ position: "absolute", height: 14, width: 14, left: n.is_public ? 19 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
+              <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: n.is_public ? "#7c3aed" : "#2d2040", borderRadius: 18, transition: "0.3s" }}>
+                <span style={{ position: "absolute", height: 12, width: 12, left: n.is_public ? 17 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
               </span>
             </label>
-            <span style={{ fontSize: 10, color: "#7a6a8a" }}>{n.is_public ? "공개" : "비공개"}</span>
-            <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
+            <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
               onClick={() => deleteNovel(n.id)}>삭제</button>
           </div>
         )}
       </div>
-      <div style={{ fontSize: 13, color: "#c4b8d8", lineHeight: 1.8, maxHeight: 80, overflow: "hidden", WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent)", marginBottom: 10 }}>
-        {n.content.split("\n").slice(1).join(" ").slice(0, 150)}
+      <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.7, maxHeight: 60, overflow: "hidden", WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent)", marginBottom: 10 }}>
+        {n.content.split("\n").filter(l => l.trim()).slice(1, 4).join(" ")}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a" }} onClick={(e) => e.stopPropagation()}>
         <span>👁 {n.views || 0}</span>
-        <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: n.is_liked ? "#f472b6" : "#5a4a6a", display: "flex", alignItems: "center", gap: 4, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
+        <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: n.is_liked ? "#f472b6" : "#5a4a6a", display: "flex", alignItems: "center", gap: 3, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
           onClick={() => toggleLike(n.id, !!n.is_liked)}>
           {n.is_liked ? "❤️" : "🤍"} {n.like_count || 0}
         </button>
@@ -318,84 +299,91 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: linear-gradient(135deg, #0f0c1a 0%, #1a1228 50%, #0d1117 100%); min-height: 100vh; }
-        .genre-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #c4b8d8; border-radius: 12px; padding: 10px 8px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px; transition: all 0.2s; text-align: center; width: 100%; }
-        .genre-btn:hover, .genre-btn.selected { background: #221738; color: #fff; transform: translateY(-2px); }
-        .tag-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 20px; padding: 6px 14px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px; transition: all 0.2s; }
+        html { font-size: 16px; }
+        body { background: #0d0a14; min-height: 100vh; overflow-x: hidden; }
+        .genre-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #c4b8d8; border-radius: 10px; padding: 10px 6px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; text-align: center; width: 100%; }
+        .genre-btn:hover, .genre-btn.selected { background: #221738; color: #fff; }
+        .tag-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 20px; padding: 5px 12px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; white-space: nowrap; }
         .tag-btn:hover { border-color: #7c3aed; color: #e8e0f0; }
         .tag-btn.selected { background: #2d1f4e; border-color: #7c3aed; color: #c4b8ff; }
-        .opt-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px; transition: all 0.2s; flex: 1; text-align: center; }
+        .opt-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 10px; padding: 10px 8px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px; transition: all 0.2s; flex: 1; text-align: center; }
         .opt-btn:hover, .opt-btn.selected { background: #221738; color: #fff; }
-        .input-field { width: 100%; background: #1a1228; border: 1.5px solid #2d2040; border-radius: 10px; padding: 12px 16px; color: #e8e0f0; font-family: 'Noto Serif KR', serif; font-size: 14px; outline: none; transition: border-color 0.2s; resize: vertical; }
+        .input-field { width: 100%; background: #1a1228; border: 1.5px solid #2d2040; border-radius: 10px; padding: 12px 14px; color: #e8e0f0; font-family: 'Noto Serif KR', serif; font-size: 14px; outline: none; transition: border-color 0.2s; resize: vertical; -webkit-appearance: none; }
         .input-field:focus { border-color: #7c3aed; }
         .input-field::placeholder { color: #5a4a6a; }
-        .char-card { background: #160f22; border: 1.5px solid #2d2040; border-radius: 12px; padding: 16px; margin-bottom: 10px; }
-        .char-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .role-badge { background: #2d1f4e; border: 1px solid #7c3aed; border-radius: 6px; padding: 6px 12px; color: #c4b8ff; font-family: 'Noto Serif KR', serif; font-size: 12px; white-space: nowrap; cursor: pointer; }
-        .btn { border: none; border-radius: 10px; padding: 10px 18px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-        .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); }
+        .char-card { background: #160f22; border: 1.5px solid #2d2040; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+        .btn { border: none; border-radius: 10px; padding: 12px 16px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; -webkit-tap-highlight-color: transparent; }
+        .btn:active { transform: scale(0.97); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
         .btn-outline { background: transparent; border: 1.5px solid #2d2040; color: #9a8aaa; }
-        .btn-outline:hover { border-color: #7c3aed !important; color: #e8e0f0 !important; }
-        .novel-editor { width: 100%; background: transparent; border: none; outline: none; color: #ddd4ee; font-family: 'Noto Serif KR', serif; font-size: 16px; line-height: 2.1; resize: none; font-weight: 300; min-height: 400px; }
-        .nav-btn { background: transparent; border: none; color: #7a6a8a; font-family: 'Noto Serif KR', serif; font-size: 14px; cursor: pointer; padding: 8px 16px; border-radius: 8px; transition: all 0.2s; }
-        .nav-btn:hover, .nav-btn.active { background: #221738; color: #e8e0f0; }
-        .tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; color: #7a6a8a; font-family: 'Noto Serif KR', serif; font-size: 14px; cursor: pointer; padding: 8px 16px; transition: all 0.2s; }
+        .novel-editor { width: 100%; background: transparent; border: none; outline: none; color: #ddd4ee; font-family: 'Noto Serif KR', serif; font-size: 16px; line-height: 2.1; resize: none; font-weight: 300; min-height: 300px; }
+        .nav-btn { background: transparent; border: none; color: #7a6a8a; font-family: 'Noto Serif KR', serif; font-size: 13px; cursor: pointer; padding: 10px 0; flex: 1; text-align: center; border-bottom: 2px solid transparent; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+        .nav-btn.active { color: #e8e0f0; border-bottom-color: #7c3aed; }
+        .tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; color: #7a6a8a; font-family: 'Noto Serif KR', serif; font-size: 14px; cursor: pointer; padding: 10px 16px; transition: all 0.2s; }
         .tab-btn.active { border-bottom-color: #7c3aed; color: #e8e0f0; }
-        .section-title { font-size: 13px; font-weight: 600; color: #c4b8d8; margin-bottom: 12px; }
-        .section { margin-bottom: 28px; }
+        .section { margin-bottom: 24px; }
+        .section-title { font-size: 12px; font-weight: 600; color: #7a6a8a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
         @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
         .shimmer-text { background: linear-gradient(90deg,#7c3aed,#f472b6,#a78bfa,#7c3aed); background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:shimmer 3s linear infinite; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
         @keyframes spin { to{transform:rotate(360deg)} }
-        .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
+        .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
+        @media (max-width: 480px) {
+          .genre-grid { grid-template-columns: repeat(3, 1fr) !important; }
+          .opt-row { flex-wrap: wrap; }
+          .opt-btn { flex: 1 1 45%; }
+        }
       `}</style>
 
-      <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh", maxWidth: 640, margin: "0 auto" }}>
 
         {/* 헤더 */}
-        <div style={{ borderBottom: "1px solid #2d2040", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 680, margin: "0 auto" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, cursor: "pointer" }} onClick={() => { setView("create"); setStep("form"); }}>
-            <span className="shimmer-text">노벨라</span>
-          </h1>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#0d0a14cc", backdropFilter: "blur(12px)", borderBottom: "1px solid #2d2040", padding: "0 16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 52 }}>
+            <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }} onClick={() => { setView("create"); setStep("form"); }}>
+              <span style={{ fontSize: 20, fontFamily: "'Playfair Display', serif", fontWeight: 700 }}>
+                <span className="shimmer-text">Novella</span>
+              </span>
+              <span style={{ fontSize: 10, color: "#5a4a6a", letterSpacing: "0.15em" }}>노벨라</span>
+            </div>
             {user ? (
-              <>
-                <span style={{ fontSize: 12, color: "#7a6a8a", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "#7a6a8a", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email?.split("@")[0]}</span>
                 <button className="btn btn-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={handleLogout}>로그아웃</button>
-              </>
+              </div>
             ) : (
-              <button className="btn btn-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setShowAuth(true)}>로그인</button>
+              <button className="btn btn-primary" style={{ padding: "7px 16px", fontSize: 13 }} onClick={() => setShowAuth(true)}>로그인</button>
             )}
           </div>
-        </div>
+        </header>
 
         {/* 네비게이션 */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 4, padding: "12px 20px", borderBottom: "1px solid #2d2040", maxWidth: 680, margin: "0 auto" }}>
+        <nav style={{ display: "flex", borderBottom: "1px solid #2d2040", background: "#0d0a14" }}>
           <button className={`nav-btn${view === "create" ? " active" : ""}`} onClick={() => { setView("create"); setStep("form"); }}>✍️ 창작</button>
           <button className={`nav-btn${view === "library" ? " active" : ""}`} onClick={() => setView("library")}>📚 서재</button>
           <button className={`nav-btn${view === "explore" ? " active" : ""}`} onClick={() => setView("explore")}>🔍 둘러보기</button>
-        </div>
+        </nav>
 
         {/* 로그인 모달 */}
         {showAuth && (
-          <div style={{ position: "fixed", inset: 0, background: "#0009", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
+          <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
             onClick={() => setShowAuth(false)}>
-            <div style={{ background: "#1a1228", border: "1px solid #2d2040", borderRadius: 16, padding: 32, width: 360, maxWidth: "90vw" }}
+            <div style={{ background: "#1a1228", borderRadius: "20px 20px 0 0", padding: "28px 20px 40px", width: "100%", maxWidth: 480 }}
               onClick={(e) => e.stopPropagation()}>
-              <h2 style={{ marginBottom: 20, fontSize: 20, fontWeight: 600 }}>{authMode === "login" ? "로그인" : "회원가입"}</h2>
+              <div style={{ width: 36, height: 4, background: "#2d2040", borderRadius: 2, margin: "0 auto 24px" }} />
+              <h2 style={{ marginBottom: 20, fontSize: 18, fontWeight: 600, textAlign: "center" }}>{authMode === "login" ? "로그인" : "회원가입"}</h2>
               <input className="input-field" style={{ marginBottom: 10 }} type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} />
               <input className="input-field" style={{ marginBottom: 16 }} type="password" placeholder="비밀번호 (6자 이상)" value={password} onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAuth(); }} />
-              {authError && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{authError}</div>}
-              <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginBottom: 12 }} onClick={handleAuth} disabled={authLoading}>
+              {authError && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{authError}</div>}
+              <button className="btn btn-primary" style={{ width: "100%", padding: 14, fontSize: 15 }} onClick={handleAuth} disabled={authLoading}>
                 {authLoading ? <><span className="spinner" /> 처리 중...</> : authMode === "login" ? "로그인" : "회원가입"}
               </button>
-              <div style={{ textAlign: "center", fontSize: 13, color: "#7a6a8a" }}>
+              <div style={{ textAlign: "center", fontSize: 13, color: "#7a6a8a", marginTop: 14 }}>
                 {authMode === "login" ? "계정이 없으신가요? " : "이미 계정이 있으신가요? "}
                 <span style={{ color: "#a78bfa", cursor: "pointer" }} onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }}>
                   {authMode === "login" ? "회원가입" : "로그인"}
@@ -407,20 +395,22 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
 
         {/* 소설 읽기 모달 */}
         {readingNovel && (
-          <div style={{ position: "fixed", inset: 0, background: "#0009", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 20px" }}
-            onClick={() => setReadingNovel(null)}>
-            <div style={{ background: "#1a1228", border: "1px solid #2d2040", borderRadius: 16, padding: 36, width: "100%", maxWidth: 640 }}
-              onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 4 }}>{readingNovel.title}</div>
-                  <div style={{ fontSize: 12, color: "#5a4a6a" }}>{readingNovel.genre} · 👁 {readingNovel.views} · ❤️ {readingNovel.like_count || 0}</div>
+          <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, overflowY: "auto" }}>
+            <div style={{ background: "#0d0a14", minHeight: "100%", maxWidth: 640, margin: "0 auto", padding: "0 0 60px" }}>
+              <div style={{ position: "sticky", top: 0, background: "#0d0a14cc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #2d2040" }}>
+                <button style={{ background: "none", border: "none", color: "#9a8aaa", fontSize: 14, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", display: "flex", alignItems: "center", gap: 4 }} onClick={() => setReadingNovel(null)}>← 뒤로</button>
+                <div style={{ display: "flex", gap: 12, fontSize: 12, color: "#5a4a6a" }}>
+                  <span>👁 {readingNovel.views}</span>
+                  <span>❤️ {readingNovel.like_count || 0}</span>
                 </div>
-                <button style={{ background: "none", border: "none", color: "#7a6a8a", fontSize: 20, cursor: "pointer" }} onClick={() => setReadingNovel(null)}>✕</button>
               </div>
-              <div style={{ lineHeight: 2.1, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{readingNovel.content}</div>
-              <div style={{ marginTop: 24, display: "flex", justifyContent: "center" }}>
-                <button style={{ background: "none", border: "1px solid #2d2040", borderRadius: 20, padding: "8px 20px", color: readingNovel.is_liked ? "#f472b6" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14 }}
+              <div style={{ padding: "28px 20px" }}>
+                <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>{readingNovel.title}</h1>
+                <div style={{ fontSize: 12, color: "#5a4a6a", marginBottom: 28 }}>{readingNovel.genre}{readingNovel.tags && ` · ${readingNovel.tags}`}</div>
+                <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{readingNovel.content}</div>
+              </div>
+              <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 640, padding: "12px 20px", background: "#0d0a14ee", borderTop: "1px solid #2d2040" }}>
+                <button style={{ width: "100%", padding: "12px", background: readingNovel.is_liked ? "#2d1f4e" : "transparent", border: `1.5px solid ${readingNovel.is_liked ? "#7c3aed" : "#2d2040"}`, borderRadius: 12, color: readingNovel.is_liked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 15, transition: "all 0.2s" }}
                   onClick={() => { toggleLike(readingNovel.id, !!readingNovel.is_liked); setReadingNovel({ ...readingNovel, is_liked: !readingNovel.is_liked, like_count: (readingNovel.like_count || 0) + (readingNovel.is_liked ? -1 : 1) }); }}>
                   {readingNovel.is_liked ? "❤️ 좋아요 취소" : "🤍 좋아요"} {readingNovel.like_count || 0}
                 </button>
@@ -429,36 +419,36 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
           </div>
         )}
 
-        <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 80px" }}>
+        <main style={{ padding: "16px 16px 100px" }}>
 
           {/* 창작 */}
           {view === "create" && (
             <>
               {step === "form" && (
-                <div className="fade-in" style={{ paddingTop: 24 }}>
+                <div className="fade-in">
                   <div className="section">
-                    <div className="section-title">01. 장르 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                    <div className="section-title">장르</div>
+                    <div className="genre-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
                       {GENRES.map((g) => (
                         <button key={g.id} className={`genre-btn${genre === g.id ? " selected" : ""}`}
-                          style={genre === g.id ? { borderColor: g.color, boxShadow: `0 0 16px ${g.color}33` } : {}}
+                          style={genre === g.id ? { borderColor: g.color, boxShadow: `0 0 12px ${g.color}33` } : {}}
                           onClick={() => setGenre(genre === g.id ? null : g.id)}>{g.label}</button>
                       ))}
                     </div>
                   </div>
 
                   <div className="section">
-                    <div className="section-title">02. 태그 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                    <div className="section-title">태그</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
                       {PRESET_TAGS.map((tag) => (
                         <button key={tag} className={`tag-btn${selectedTags.includes(tag) ? " selected" : ""}`} onClick={() => toggleTag(tag)}>{tag}</button>
                       ))}
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <input className="input-field" style={{ resize: "none" }} placeholder="직접 태그 입력 후 엔터" value={customTag}
+                      <input className="input-field" style={{ resize: "none" }} placeholder="직접 입력 후 엔터" value={customTag}
                         onChange={(e) => setCustomTag(e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomTag(); } }} />
-                      <button className="btn btn-outline" onClick={addCustomTag} style={{ whiteSpace: "nowrap" }}>+ 추가</button>
+                      <button className="btn btn-outline" onClick={addCustomTag} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>추가</button>
                     </div>
                     {selectedTags.length > 0 && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
@@ -470,18 +460,18 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                   </div>
 
                   <div className="section">
-                    <div className="section-title">03. 문체 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <div className="section-title">문체</div>
+                    <div className="opt-row" style={{ display: "flex", gap: 8 }}>
                       {STYLES.map((s) => (
                         <button key={s.id} className={`opt-btn${style === s.id ? " selected" : ""}`}
-                          style={{ ...(style === s.id ? { borderColor: accentColor } : {}), flex: "1 1 40%" }}
+                          style={style === s.id ? { borderColor: accentColor } : {}}
                           onClick={() => setStyle(style === s.id ? null : s.id)}>{s.label}</button>
                       ))}
                     </div>
                   </div>
 
                   <div className="section">
-                    <div className="section-title">04. 결말 방향 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                    <div className="section-title">결말</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       {ENDINGS.map((e) => (
                         <button key={e.id} className={`opt-btn${ending === e.id ? " selected" : ""}`}
@@ -491,116 +481,112 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                     </div>
                   </div>
 
-                  <div className="section">
-                    <div className="section-title">05. 시점 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {POVS.map((p) => (
-                        <button key={p.id} className={`opt-btn${pov === p.id ? " selected" : ""}`}
-                          style={pov === p.id ? { borderColor: accentColor } : {}}
-                          onClick={() => setPov(p.id)}>
-                          <div style={{ fontWeight: 600 }}>{p.label}</div>
-                          <div style={{ fontSize: 11, color: "#7a6a8a", marginTop: 2 }}>{p.desc}</div>
-                        </button>
-                      ))}
+                  <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="section-title">시점</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {POVS.map((p) => (
+                          <button key={p.id} className={`opt-btn${pov === p.id ? " selected" : ""}`}
+                            style={pov === p.id ? { borderColor: accentColor } : {}}
+                            onClick={() => setPov(p.id)}>
+                            <div style={{ fontWeight: 600, fontSize: 13 }}>{p.label}</div>
+                            <div style={{ fontSize: 10, color: "#7a6a8a" }}>{p.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="section-title">수위</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {RATINGS.map((r) => (
+                          <button key={r.id} className={`opt-btn${rating === r.id ? " selected" : ""}`}
+                            style={rating === r.id ? { borderColor: r.id === "adult" ? "#f87171" : accentColor } : {}}
+                            onClick={() => setRating(r.id)}>
+                            <div style={{ fontWeight: 600, fontSize: 12, color: r.id === "adult" && rating === r.id ? "#fca5a5" : "inherit" }}>{r.label}</div>
+                            <div style={{ fontSize: 10, color: "#7a6a8a" }}>{r.desc}</div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   <div className="section">
-                    <div className="section-title">06. 수위 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {RATINGS.map((r) => (
-                        <button key={r.id} className={`opt-btn${rating === r.id ? " selected" : ""}`}
-                          style={rating === r.id ? { borderColor: r.id === "adult" ? "#f87171" : accentColor } : {}}
-                          onClick={() => setRating(r.id)}>
-                          <div style={{ fontWeight: 600, color: r.id === "adult" && rating === r.id ? "#fca5a5" : "inherit" }}>{r.label}</div>
-                          <div style={{ fontSize: 11, color: "#7a6a8a", marginTop: 2 }}>{r.desc}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">07. 작품 제목 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                    <div className="section-title">제목</div>
                     <input className="input-field" placeholder="비우면 AI가 정해요" value={title} onChange={(e) => setTitle(e.target.value)} />
                   </div>
 
                   <div className="section">
-                    <div className="section-title">08. 줄거리 / 배경 설정 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                    <textarea className="input-field" rows={3} placeholder="예: 기억을 잃고 낯선 도시에서 깨어난 남자가 자신의 과거를 추적하는 이야기." value={synopsis} onChange={(e) => setSynopsis(e.target.value)} />
+                    <div className="section-title">줄거리 / 배경</div>
+                    <textarea className="input-field" rows={3} placeholder="예: 기억을 잃고 낯선 도시에서 깨어난 남자의 이야기" value={synopsis} onChange={(e) => setSynopsis(e.target.value)} />
                   </div>
 
                   <div className="section">
-                    <div className="section-title">09. 등장인물 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                    <div className="section-title">등장인물</div>
                     {characters.map((char, idx) => (
                       <div key={char.id} className="char-card">
-                        <div className="char-row">
-                          <span className="role-badge" onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>{char.role} ↕</span>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                          <span style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}
+                            onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>{char.role} ↕</span>
                           <input className="input-field" style={{ flex: 1 }} placeholder="이름" value={char.name} onChange={(e) => updateCharacter(char.id, "name", e.target.value)} />
-                          {idx > 0 && <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: 12, fontFamily: "'Noto Serif KR', serif" }} onClick={() => removeCharacter(char.id)}>삭제</button>}
+                          {idx > 0 && <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif", flexShrink: 0 }} onClick={() => removeCharacter(char.id)}>삭제</button>}
                         </div>
                         <textarea className="input-field" rows={2}
-                          placeholder={genre === "bl" ? "예: 공, 냉정한 CEO, 집착형" : genre === "gl" ? "예: 攻, 활발한 성격" : "예: 차갑지만 따뜻한 마음을 숨기고 있는 30대 형사"}
+                          placeholder={genre === "bl" ? "예: 공, 냉정한 CEO" : genre === "gl" ? "예: 攻, 활발한 성격" : "예: 차갑지만 따뜻한 30대 형사"}
                           value={char.desc} onChange={(e) => updateCharacter(char.id, "desc", e.target.value)} />
                       </div>
                     ))}
                     {characters.length < 5 && (
-                      <button className="btn btn-outline" onClick={addCharacter} style={{ width: "100%", justifyContent: "center", marginTop: 4 }}>+ 캐릭터 추가</button>
+                      <button className="btn btn-outline" onClick={addCharacter} style={{ width: "100%", marginTop: 4 }}>+ 캐릭터 추가</button>
                     )}
                   </div>
 
                   {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {error}</div>}
-                  <button className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 12, justifyContent: "center" }} onClick={generateNovel} disabled={loading}>
+                  <button className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 14 }} onClick={generateNovel} disabled={loading}>
                     {loading ? <><span className="spinner" /> 생성 중...</> : "✨ 소설 생성하기"}
                   </button>
                 </div>
               )}
 
               {step === "result" && (
-                <div className="fade-in" style={{ paddingTop: 24 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                    <button className="btn btn-outline" onClick={() => { setStep("form"); setNovel(""); setIsEditing(false); }}>← 다시 만들기</button>
-                    <button className="btn btn-outline" style={{ borderColor: isEditing ? accentColor : "#2d2040", color: isEditing ? accentColor : "#9a8aaa" }}
+                <div className="fade-in">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingTop: 8 }}>
+                    <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => { setStep("form"); setNovel(""); setIsEditing(false); }}>← 다시 만들기</button>
+                    <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13, borderColor: isEditing ? accentColor : "#2d2040", color: isEditing ? accentColor : "#9a8aaa" }}
                       onClick={() => { setIsEditing(!isEditing); setEditedNovel(novel); }} disabled={loading}>
-                      {isEditing ? "✅ 편집 완료" : "✏️ 편집"}
+                      {isEditing ? "✅ 완료" : "✏️ 편집"}
                     </button>
                   </div>
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-                    {[selectedGenre?.label, ...selectedTags, STYLES.find(s => s.id === style)?.label, RATINGS.find(r => r.id === rating)?.label].filter(Boolean).map((tag, i) => (
-                      <span key={i} style={{ background: "#1a1228", border: "1px solid #2d2040", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "#9a8aaa" }}>{tag}</span>
-                    ))}
-                  </div>
-
-                  <div style={{ background: "linear-gradient(180deg,#1a1228 0%,#160f22 100%)", border: `1px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "36px 32px", minHeight: 300, boxShadow: "0 8px 48px #0007" }}>
-                    {loading && <div style={{ textAlign: "center", padding: "48px 0", color: "#5a4a6a" }}><div style={{ fontSize: 32, marginBottom: 16 }}>✍️</div><div>이야기를 쓰고 있어요...</div></div>}
+                  <div style={{ background: "#160f22", border: `1.5px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "24px 20px", minHeight: 280 }}>
+                    {loading && <div style={{ textAlign: "center", padding: "40px 0", color: "#5a4a6a" }}><div style={{ fontSize: 28, marginBottom: 12 }}>✍️</div><div>이야기를 쓰고 있어요...</div></div>}
                     {!loading && isEditing && <textarea className="novel-editor" value={editedNovel} onChange={(e) => setEditedNovel(e.target.value)} />}
                     {!loading && !isEditing && novel && <div style={{ lineHeight: 2.1, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
                   </div>
 
                   {!loading && novel && (
                     <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0", padding: "12px 16px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0", padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
                         <label style={{ position: "relative", width: 44, height: 24, cursor: "pointer", flexShrink: 0 }}>
                           <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
                           <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: isPublic ? "#7c3aed" : "#2d2040", borderRadius: 24, transition: "0.3s" }}>
                             <span style={{ position: "absolute", height: 18, width: 18, left: isPublic ? 23 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
                           </span>
                         </label>
-                        <div>
-                          <div style={{ fontSize: 14, color: "#c4b8d8" }}>{isPublic ? "🌍 공개 — 둘러보기에 표시됩니다" : "🔒 비공개 — 나만 볼 수 있어요"}</div>
-                        </div>
+                        <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 공개 — 둘러보기에 표시" : "🔒 비공개 — 나만 볼 수 있음"}</span>
                       </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                        <button className="btn btn-primary" onClick={continueNovel} disabled={continuing} style={{ flex: "1 1 140px", justifyContent: "center" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                        <button className="btn btn-primary" onClick={continueNovel} disabled={continuing} style={{ fontSize: 14 }}>
                           {continuing ? <><span className="spinner" /> 이어쓰는 중...</> : "📖 이어쓰기"}
                         </button>
-                        <button className="btn btn-outline" onClick={saveNovel} disabled={saving} style={{ flex: "1 1 110px", justifyContent: "center", borderColor: saveMsg ? "#86efac" : "#2d2040", color: saveMsg ? "#86efac" : "#9a8aaa" }}>
+                        <button className="btn btn-outline" onClick={saveNovel} disabled={saving} style={{ fontSize: 14, borderColor: saveMsg ? "#86efac" : "#2d2040", color: saveMsg ? "#86efac" : "#9a8aaa" }}>
                           {saving ? <><span className="spinner" /></> : saveMsg || "💾 서재 저장"}
                         </button>
-                        <button className="btn btn-outline" onClick={generateNovel} disabled={loading} style={{ flex: "1 1 90px", justifyContent: "center" }}>🔄 재생성</button>
-                        <button className="btn btn-outline" onClick={saveAsText} style={{ flex: "1 1 90px", justifyContent: "center" }}>📄 txt</button>
-                        <button className="btn btn-outline" onClick={copyToClipboard} style={{ flex: "1 1 90px", justifyContent: "center", borderColor: copied ? "#86efac" : "#2d2040", color: copied ? "#86efac" : "#9a8aaa" }}>
-                          {copied ? "✅" : "📋 복사"}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                        <button className="btn btn-outline" onClick={generateNovel} disabled={loading} style={{ fontSize: 13 }}>🔄 재생성</button>
+                        <button className="btn btn-outline" onClick={saveAsText} style={{ fontSize: 13 }}>📄 저장</button>
+                        <button className="btn btn-outline" onClick={copyToClipboard} style={{ fontSize: 13, borderColor: copied ? "#86efac" : "#2d2040", color: copied ? "#86efac" : "#9a8aaa" }}>
+                          {copied ? "✅ 복사됨" : "📋 복사"}
                         </button>
                       </div>
                     </>
@@ -612,28 +598,28 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
 
           {/* 서재 */}
           {view === "library" && (
-            <div className="fade-in" style={{ paddingTop: 16 }}>
-              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 20 }}>
+            <div className="fade-in">
+              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 16 }}>
                 <button className={`tab-btn${libraryTab === "my" ? " active" : ""}`} onClick={() => setLibraryTab("my")}>📝 내 작품</button>
                 <button className={`tab-btn${libraryTab === "liked" ? " active" : ""}`} onClick={() => { setLibraryTab("liked"); if (user) fetchLikedNovels(); }}>❤️ 좋아한 작품</button>
               </div>
               {!user ? (
-                <div style={{ textAlign: "center", padding: "48px 0", color: "#5a4a6a" }}>
-                  <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
-                  <div style={{ marginBottom: 16 }}>로그인하면 서재를 이용할 수 있어요</div>
-                  <button className="btn btn-primary" onClick={() => setShowAuth(true)}>로그인하기</button>
+                <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+                  <div style={{ marginBottom: 20, fontSize: 15 }}>로그인하면 서재를 이용할 수 있어요</div>
+                  <button className="btn btn-primary" style={{ padding: "12px 28px" }} onClick={() => setShowAuth(true)}>로그인하기</button>
                 </div>
               ) : libraryTab === "my" ? (
                 myNovels.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "48px 0", color: "#5a4a6a" }}>
-                    <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
+                  <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
                     <div>아직 저장된 소설이 없어요</div>
                   </div>
                 ) : myNovels.map((n) => <NovelCard key={n.id} n={n} showActions />)
               ) : (
                 likedNovels.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "48px 0", color: "#5a4a6a" }}>
-                    <div style={{ fontSize: 32, marginBottom: 12 }}>🤍</div>
+                  <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>🤍</div>
                     <div>좋아한 작품이 없어요</div>
                   </div>
                 ) : likedNovels.map((n) => <NovelCard key={n.id} n={n} />)
@@ -643,25 +629,25 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
 
           {/* 둘러보기 */}
           {view === "explore" && (
-            <div className="fade-in" style={{ paddingTop: 16 }}>
-              <div style={{ marginBottom: 16 }}>
-                <input className="input-field" placeholder="🔍 제목, 장르, 태그로 검색..."
+            <div className="fade-in">
+              <div style={{ marginBottom: 12 }}>
+                <input className="input-field" placeholder="🔍 제목, 장르, 태그 검색..."
                   value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") fetchPublicNovels(); }} />
               </div>
-              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 20 }}>
+              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 16 }}>
                 <button className={`tab-btn${exploreTab === "latest" ? " active" : ""}`} onClick={() => setExploreTab("latest")}>🆕 최신</button>
                 <button className={`tab-btn${exploreTab === "popular" ? " active" : ""}`} onClick={() => setExploreTab("popular")}>🔥 인기</button>
               </div>
               {publicNovels.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "48px 0", color: "#5a4a6a" }}>
-                  <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
+                <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
                   <div>아직 공개된 소설이 없어요</div>
                 </div>
               ) : publicNovels.map((n) => <NovelCard key={n.id} n={n} />)}
             </div>
           )}
-        </div>
+        </main>
       </div>
     </>
   );
