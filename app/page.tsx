@@ -196,8 +196,8 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
       <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh" }}>
         <div style={{ textAlign: "center", padding: "48px 20px 32px" }}>
           <div style={{ fontSize: 11, letterSpacing: "0.3em", color: "#5a4a6a", marginBottom: 12 }}>AI NOVEL STUDIO</div>
-          <h1 style={{ fontSize: "clamp(28px,5vw,44px)", fontWeight: 700 }}><span className="shimmer-text">소설 창작소</span></h1>
-          <p style={{ margin: "12px 0 0", color: "#7a6a8a", fontSize: 15, fontWeight: 300 }}>당신만의 이야기를 AI와 함께 만들어보세요</p>
+          <h1 style={{ fontSize: "clamp(28px,5vw,44px)", fontWeight: 700 }}><span className="shimmer-text">노블피아</span></h1>
+          <p style={{ margin: "12px 0 0", color: "#7a6a8a", fontSize: 15, fontWeight: 300 }}>AI와 함께 쓰는 장르소설</p>
         </div>
 
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 80px" }}>
