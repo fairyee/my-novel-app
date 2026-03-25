@@ -452,10 +452,9 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
               {episodes.length > 0 && <span style={{ color: "#7c3aed", marginLeft: 6 }}>총 {episodes.length}화</span>}
             </div>
           </div>
-          {showActions && (
+          {showActions && episodes.length === 0 && (
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-              {/* 단편(시리즈 아닌 경우)만 카드에서 토글 */}
-              {episodes.length === 0 && <PublicToggle ep={n} />}
+              <PublicToggle ep={n} />
               <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
                 onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>삭제</button>
             </div>
@@ -465,22 +464,21 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
           {n.content.split("\n").filter((l: string) => l.trim()).slice(1, 4).join(" ")}
         </div>
 
-        {/* 시리즈일 때 화별 목록 + 공개 토글 */}
+        {/* 시리즈일 때 화별 목록 + 공개 토글 + 삭제 */}
         {showActions && episodes.length > 0 && (
           <div style={{ borderTop: "1px solid #2d2040", marginTop: 10, paddingTop: 10 }} onClick={(e) => e.stopPropagation()}>
             {episodes.map((ep) => (
               <div key={ep.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 4px", borderRadius: 8, transition: "background 0.15s" }}
                 onMouseOver={(e) => (e.currentTarget.style.background = "#1a1228")}
                 onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}>
-                <span
-                  style={{ fontSize: 13, color: "#c4b8d8", cursor: "pointer", flex: 1 }}
-                  onClick={() => openNovel(ep, true)}
-                >
+                <span style={{ fontSize: 13, color: "#c4b8d8", cursor: "pointer", flex: 1 }} onClick={() => openNovel(ep, true)}>
                   {ep.episode_number}화. {ep.title}
                 </span>
                 <PublicToggle ep={ep} />
               </div>
             ))}
+            <button style={{ marginTop: 8, width: "100%", padding: "7px", background: "transparent", border: "1px solid #3d1f1f", borderRadius: 8, color: "#f87171", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 12 }}
+              onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>🗑️ 시리즈 삭제</button>
           </div>
         )}
 
@@ -498,12 +496,6 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
           <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a", marginTop: 6 }}>
             <span>👁 {n.views || 0}</span>
             <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
-          </div>
-        )}
-        {showActions && episodes.length > 0 && (
-          <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 11, color: "#5a4a6a", marginTop: 4 }}>
-            <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
-              onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>시리즈 삭제</button>
           </div>
         )}
       </div>
