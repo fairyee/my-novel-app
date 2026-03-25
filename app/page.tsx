@@ -328,7 +328,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     const currentText = isEditing ? editedNovel : novel;
     const prompt = `아래 소설을 자연스럽게 이어서 써주세요. 기존 문체와 분위기를 유지하고 300~500자 추가. 이어지는 내용만 출력하세요.\n\n${currentText}`;
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 700 }) });
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 3000 }) });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       const cont = currentText + "\n\n" + data.text;
