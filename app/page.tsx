@@ -48,8 +48,14 @@ const POVS = [
 ];
 
 interface Character { id: number; name: string; desc: string; role: string; }
-interface Novel { id: string; title: string; content: string; genre: string; tags: string; is_public: boolean; created_at: string; views: number; like_count?: number; is_liked?: boolean; author_nickname?: string; }
+interface Novel {
+  id: string; title: string; content: string; genre: string; tags: string;
+  is_public: boolean; created_at: string; views: number;
+  like_count?: number; is_liked?: boolean;
+  series_id?: string; episode_number?: number; series_title?: string;
+}
 interface Profile { id: string; nickname: string; }
+interface Series { series_id: string; series_title: string; genre: string; tags: string; episode_count: number; latest: string; views: number; }
 
 export default function Home() {
   const supabase = createClient();
@@ -74,8 +80,10 @@ export default function Home() {
   const [exploreTab, setExploreTab] = useState<"latest"|"popular">("latest");
   const [searchQuery, setSearchQuery] = useState("");
   const [readingNovel, setReadingNovel] = useState<Novel|null>(null);
+  const [readingSeries, setReadingSeries] = useState<Novel[]>([]);
   const [isMyNovel, setIsMyNovel] = useState(false);
 
+  // 창작
   const [genre, setGenre] = useState<string|null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
@@ -84,9 +92,12 @@ export default function Home() {
   const [rating, setRating] = useState("all");
   const [pov, setPov] = useState("third");
   const [title, setTitle] = useState("");
+  const [seriesTitle, setSeriesTitle] = useState("");
   const [synopsis, setSynopsis] = useState("");
   const [characters, setCharacters] = useState<Character[]>([{ id: 1, name: "", desc: "", role: "주인공" }]);
   const [isPublic, setIsPublic] = useState(false);
+  const [currentSeriesId, setCurrentSeriesId] = useState<string|null>(null);
+  const [currentEpisode, setCurrentEpisode] = useState(1);
 
   const [novel, setNovel] = useState("");
   const [loading, setLoading] = useState(false);
@@ -149,7 +160,7 @@ export default function Home() {
 
   async function fetchPublicNovels() {
     let query = supabase.from("novels").select("*").eq("is_public", true);
-    if (searchQuery.trim()) query = query.or(`title.ilike.%${searchQuery}%,tags.ilike.%${searchQuery}%,genre.ilike.%${searchQuery}%`);
+    if (searchQuery.trim()) query = query.or(`title.ilike.%${searchQuery}%,tags.ilike.%${searchQuery}%,genre.ilike.%${searchQuery}%,series_title.ilike.%${searchQuery}%`);
     query = exploreTab === "popular" ? query.order("views", { ascending: false }) : query.order("created_at", { ascending: false });
     const { data } = await query.limit(50);
     if (!data) { setPublicNovels([]); return; }
@@ -174,8 +185,15 @@ export default function Home() {
 
   async function openNovel(n: Novel, mine = false) {
     await supabase.rpc("increment_views", { novel_id: n.id });
-    setReadingNovel({ ...n, views: n.views + 1 });
+    setReadingNovel({ ...n, views: (n.views || 0) + 1 });
     setIsMyNovel(mine);
+    // 시리즈면 전체 화 목록 가져오기
+    if (n.series_id) {
+      const { data } = await supabase.from("novels").select("*").eq("series_id", n.series_id).order("episode_number", { ascending: true });
+      setReadingSeries(data || []);
+    } else {
+      setReadingSeries([]);
+    }
   }
 
   async function handleAuth() {
@@ -197,22 +215,39 @@ export default function Home() {
     setSaving(true); setSaveMsg("");
     const content = isEditing ? editedNovel : novel;
     const novelTitle = title || content.split("\n")[0] || "제목 없음";
+    const sid = currentSeriesId || crypto.randomUUID();
+    if (!currentSeriesId) setCurrentSeriesId(sid);
     const { error } = await supabase.from("novels").insert({
-      user_id: user.id, title: novelTitle, content,
-      genre: selectedGenre?.label || "", tags: selectedTags.join(", "),
-      is_public: isPublic, views: 0,
+      user_id: user.id,
+      title: novelTitle,
+      content,
+      genre: selectedGenre?.label || "",
+      tags: selectedTags.join(", "),
+      is_public: isPublic,
+      views: 0,
+      series_id: sid,
+      episode_number: currentEpisode,
+      series_title: seriesTitle || novelTitle,
     });
-    setSaveMsg(error ? "저장 실패 😢" : "저장됐어요! ✅");
+    if (!error) {
+      setSaveMsg(`${currentEpisode}화 저장됐어요! ✅`);
+      setCurrentEpisode(prev => prev + 1);
+    } else {
+      setSaveMsg("저장 실패 😢");
+    }
     setSaving(false);
     setTimeout(() => setSaveMsg(""), 3000);
   }
 
-  async function togglePublic(id: string, current: boolean) {
+  async function togglePublic(e: React.MouseEvent, id: string, current: boolean) {
+    e.stopPropagation();
+    e.preventDefault();
     await supabase.from("novels").update({ is_public: !current }).eq("id", id);
     fetchMyNovels();
   }
 
-  async function deleteNovel(id: string) {
+  async function deleteNovel(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
     if (!confirm("정말 삭제할까요?")) return;
     await supabase.from("novels").delete().eq("id", id);
     fetchMyNovels();
@@ -235,14 +270,21 @@ export default function Home() {
     setCharacters((prev) => prev.map((c) => c.id === id ? { ...c, [field]: value } : c));
   }
 
+  function resetForm() {
+    setStep("form"); setNovel(""); setEditedNovel(""); setIsEditing(false);
+    setCurrentSeriesId(null); setCurrentEpisode(1); setSaveMsg("");
+  }
+
   async function generateNovel() {
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false); setSaveMsg("");
     const ratingLabel = rating === "all" ? "전체가" : rating === "teen" ? "15세 이상" : "성인 (암시 포함)";
     const styleLabel = STYLES.find(s => s.id === style)?.label || "자유";
     const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "자유";
     const charDesc = characters.filter(c => c.name || c.desc).map(c => `- ${c.role} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`).join("\n");
-    const prompt = `당신은 감성적이고 몰입감 있는 한국 소설 작가입니다. 아래 설정으로 소설을 한국어로 써주세요.
-${title ? `작품 제목: ${title}` : ""}
+    const episodeInfo = currentEpisode > 1 ? `이전 내용을 이어서 ${currentEpisode}화를 써주세요.` : `1화를 써주세요.`;
+    const prompt = `당신은 감성적이고 몰입감 있는 한국 소설 작가입니다. ${episodeInfo}
+${seriesTitle ? `시리즈 제목: ${seriesTitle}` : ""}
+${title ? `이번 화 제목: ${title}` : ""}
 장르: ${selectedGenre?.label || "자유"}
 태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "자유"}
 문체: ${styleLabel}
@@ -252,7 +294,7 @@ ${title ? `작품 제목: ${title}` : ""}
 ${synopsis ? `줄거리/설정: ${synopsis}` : ""}
 ${charDesc ? `등장인물:\n${charDesc}` : ""}
 분량: 500~800자
-규칙: ${title ? `제목은 "${title}"로 고정.` : "제목을 먼저 쓰고"} 한 줄 띄우기. 생생한 묘사와 대화 포함. 마크다운 없이 순수 텍스트로.`;
+규칙: 제목을 먼저 쓰고 한 줄 띄우기. 생생한 묘사와 대화 포함. 마크다운 없이 순수 텍스트로.`;
     try {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 1000 }) });
       const data = await res.json();
@@ -265,8 +307,9 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
   async function continueNovel() {
     setContinuing(true);
     const currentText = isEditing ? editedNovel : novel;
+    const prompt = `아래 소설을 자연스럽게 이어서 써주세요. 기존 문체와 분위기를 유지하고 300~500자 추가. 이어지는 내용만 출력하세요.\n\n${currentText}`;
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `아래 소설을 자연스럽게 이어서 써주세요. 기존 문체와 분위기를 유지하고 300~500자 추가. 이어지는 내용만 출력.\n\n${currentText}`, tokens: 700 }) });
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 700 }) });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       const cont = currentText + "\n\n" + data.text;
@@ -275,16 +318,56 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     finally { setContinuing(false); }
   }
 
+  async function generateNextEpisode() {
+    const currentText = isEditing ? editedNovel : novel;
+    setCurrentEpisode(prev => prev + 1);
+    setNovel(""); setEditedNovel(""); setIsEditing(false); setSaveMsg("");
+    setLoading(true);
+    const prompt = `아래는 소설의 이전 화 내용입니다. 이 내용을 바탕으로 자연스럽게 이어지는 다음 화를 써주세요. 500~800자, 마크다운 없이 순수 텍스트로.\n\n이전 화:\n${currentText}`;
+    try {
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 1000 }) });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setNovel(data.text); setEditedNovel(data.text);
+    } catch (e: any) { setError("오류: " + e.message); }
+    finally { setLoading(false); }
+  }
+
   function saveAsText() {
     const content = isEditing ? editedNovel : novel;
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `${title || "소설"}.txt`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `${seriesTitle || title || "소설"}_${currentEpisode}화.txt`; a.click();
     URL.revokeObjectURL(url);
   }
 
   function copyToClipboard() {
     navigator.clipboard.writeText(isEditing ? editedNovel : novel).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  // 서재에서 이어쓰기
+  function continueFromLibrary(n: Novel) {
+    setNovel(n.content);
+    setEditedNovel(n.content);
+    setCurrentSeriesId(n.series_id || null);
+    setCurrentEpisode((n.episode_number || 1) + 1);
+    setSeriesTitle(n.series_title || "");
+    setStep("result");
+    setView("create");
+    setReadingNovel(null);
+  }
+
+  // 서재에서 편집
+  function editFromLibrary(n: Novel) {
+    setNovel(n.content);
+    setEditedNovel(n.content);
+    setIsEditing(true);
+    setCurrentSeriesId(n.series_id || null);
+    setCurrentEpisode(n.episode_number || 1);
+    setSeriesTitle(n.series_title || "");
+    setStep("result");
+    setView("create");
+    setReadingNovel(null);
   }
 
   const NovelCard = ({ n, showActions = false }: { n: Novel; showActions?: boolean }) => (
@@ -294,19 +377,23 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
       onClick={() => openNovel(n, showActions)}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</div>
+          {n.series_title && n.series_title !== n.title && (
+            <div style={{ fontSize: 11, color: "#7c3aed", marginBottom: 2 }}>📚 {n.series_title}</div>
+          )}
+          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {n.episode_number && n.episode_number > 0 ? `${n.episode_number}화. ` : ""}{n.title}
+          </div>
           <div style={{ fontSize: 11, color: "#5a4a6a" }}>{n.genre}{n.tags && ` · ${n.tags.split(",").slice(0, 2).join(", ")}`}</div>
         </div>
         {showActions && (
-          <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-            <label style={{ position: "relative", width: 32, height: 18, cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); }}>
-              <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={n.is_public} onChange={() => togglePublic(n.id, n.is_public)} />
-              <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: n.is_public ? "#7c3aed" : "#2d2040", borderRadius: 18, transition: "0.3s" }}>
-                <span style={{ position: "absolute", height: 12, width: 12, left: n.is_public ? 17 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+            <label style={{ position: "relative", width: 32, height: 18, cursor: "pointer" }} onClick={(e) => togglePublic(e, n.id, n.is_public)}>
+              <span style={{ display: "block", width: 32, height: 18, background: n.is_public ? "#7c3aed" : "#2d2040", borderRadius: 18, transition: "0.3s", position: "relative" }}>
+                <span style={{ position: "absolute", height: 12, width: 12, left: n.is_public ? 17 : 3, top: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
               </span>
             </label>
             <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
-              onClick={() => deleteNovel(n.id)}>삭제</button>
+              onClick={(e) => deleteNovel(e, n.id)}>삭제</button>
           </div>
         )}
       </div>
@@ -330,7 +417,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 16px; }
-        body { background: #0d0a14; min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; }
+        body { background: #0d0a14; min-height: 100vh; overflow-x: hidden; }
         .genre-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #c4b8d8; border-radius: 10px; padding: 10px 6px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; text-align: center; width: 100%; }
         .genre-btn:hover, .genre-btn.selected { background: #221738; color: #fff; }
         .tag-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 20px; padding: 5px 12px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; white-space: nowrap; }
@@ -360,9 +447,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         .fade-in { animation: fadeIn 0.4s ease forwards; }
         @keyframes spin { to{transform:rotate(360deg)} }
         .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
-        @media (max-width: 480px) {
-          .genre-grid { grid-template-columns: repeat(3, 1fr) !important; }
-        }
+        @media (max-width: 480px) { .genre-grid { grid-template-columns: repeat(3, 1fr) !important; } }
       `}</style>
 
       <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh", maxWidth: 640, margin: "0 auto", width: "100%" }}>
@@ -370,7 +455,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         {/* 헤더 */}
         <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#0d0a14cc", backdropFilter: "blur(12px)", borderBottom: "1px solid #2d2040", padding: "0 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 52 }}>
-            <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }} onClick={() => { setView("create"); setStep("form"); }}>
+            <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }} onClick={() => { setView("create"); resetForm(); }}>
               <span style={{ fontSize: 20, fontFamily: "'Playfair Display', serif", fontWeight: 700 }}>
                 <span className="shimmer-text">Novella</span>
               </span>
@@ -378,7 +463,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
             </div>
             {user ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#c4b8d8", fontSize: 13, fontFamily: "'Noto Serif KR', serif", display: "flex", alignItems: "center", gap: 4 }}
+                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#c4b8d8", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }}
                   onClick={() => { setShowProfile(true); setNicknameInput(profile?.nickname || ""); }}>
                   👤 {profile?.nickname || user.email?.split("@")[0]}
                 </button>
@@ -392,7 +477,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
 
         {/* 네비게이션 */}
         <nav style={{ display: "flex", borderBottom: "1px solid #2d2040", background: "#0d0a14" }}>
-          <button className={`nav-btn${view === "create" ? " active" : ""}`} onClick={() => { setView("create"); setStep("form"); }}>✍️ 창작</button>
+          <button className={`nav-btn${view === "create" ? " active" : ""}`} onClick={() => { setView("create"); }}>✍️ 창작</button>
           <button className={`nav-btn${view === "explore" ? " active" : ""}`} onClick={() => setView("explore")}>🔍 둘러보기</button>
           <button className={`nav-btn${view === "library" ? " active" : ""}`} onClick={() => setView("library")}>📚 서재</button>
         </nav>
@@ -432,8 +517,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
               <h2 style={{ marginBottom: 8, fontSize: 18, fontWeight: 600, textAlign: "center" }}>프로필</h2>
               <div style={{ fontSize: 12, color: "#5a4a6a", textAlign: "center", marginBottom: 20 }}>{user?.email}</div>
               <div style={{ fontSize: 12, color: "#7a6a8a", marginBottom: 8 }}>닉네임</div>
-              <input className="input-field" style={{ marginBottom: 16 }} placeholder="닉네임 입력" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") saveNickname(); }} />
+              <input className="input-field" style={{ marginBottom: 16 }} placeholder="닉네임 입력" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} />
               <button className="btn btn-primary" style={{ width: "100%", padding: 14, fontSize: 15 }} onClick={saveNickname} disabled={nicknameSaving}>
                 {nicknameSaving ? <><span className="spinner" /> 저장 중...</> : "저장"}
               </button>
@@ -441,50 +525,57 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
           </div>
         )}
 
-        {/* 소설 읽기 */}
+        {/* 소설 읽기 모달 */}
         {readingNovel && (
-          <div style={{ position: "fixed", inset: 0, background: "#0d0a14", zIndex: 100, overflowY: "auto" }}>
-            <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 80 }}>
-              <div style={{ position: "sticky", top: 0, background: "#0d0a14cc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #2d2040" }}>
+          <div style={{ position: "fixed", inset: 0, background: "#0d0a14", zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+            <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 120 }}>
+              <div style={{ position: "sticky", top: 0, background: "#0d0a14cc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #2d2040", zIndex: 10 }}>
                 <button style={{ background: "none", border: "none", color: "#9a8aaa", fontSize: 14, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }} onClick={() => setReadingNovel(null)}>← 뒤로</button>
                 <div style={{ display: "flex", gap: 12, fontSize: 12, color: "#5a4a6a" }}>
                   <span>👁 {readingNovel.views}</span>
                   <span>❤️ {readingNovel.like_count || 0}</span>
                 </div>
               </div>
+
+              {/* 시리즈 화 목록 */}
+              {readingSeries.length > 1 && (
+                <div style={{ padding: "12px 16px", borderBottom: "1px solid #2d2040", display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                  {readingSeries.map((ep) => (
+                    <button key={ep.id}
+                      style={{ flexShrink: 0, padding: "6px 12px", background: ep.id === readingNovel.id ? "#2d1f4e" : "#1a1228", border: `1px solid ${ep.id === readingNovel.id ? "#7c3aed" : "#2d2040"}`, borderRadius: 20, color: ep.id === readingNovel.id ? "#c4b8ff" : "#7a6a8a", fontSize: 12, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}
+                      onClick={() => openNovel(ep, isMyNovel)}>
+                      {ep.episode_number}화
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div style={{ padding: "28px 20px" }}>
-                <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>{readingNovel.title}</h1>
+                {readingNovel.series_title && readingNovel.series_title !== readingNovel.title && (
+                  <div style={{ fontSize: 12, color: "#7c3aed", marginBottom: 6 }}>📚 {readingNovel.series_title}</div>
+                )}
+                <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>
+                  {readingNovel.episode_number ? `${readingNovel.episode_number}화. ` : ""}{readingNovel.title}
+                </h1>
                 <div style={{ fontSize: 12, color: "#5a4a6a", marginBottom: 28 }}>{readingNovel.genre}{readingNovel.tags && ` · ${readingNovel.tags}`}</div>
                 <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{readingNovel.content}</div>
               </div>
-              <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 640, padding: "12px 20px", background: "#0d0a14ee", borderTop: "1px solid #2d2040" }}>
-                <button style={{ width: "100%", padding: "12px", background: readingNovel.is_liked ? "#2d1f4e" : "transparent", border: `1.5px solid ${readingNovel.is_liked ? "#7c3aed" : "#2d2040"}`, borderRadius: 12, color: readingNovel.is_liked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 15, transition: "all 0.2s" }}
-                  onClick={() => { toggleLike(readingNovel.id, !!readingNovel.is_liked); setReadingNovel({ ...readingNovel, is_liked: !readingNovel.is_liked, like_count: (readingNovel.like_count || 0) + (readingNovel.is_liked ? -1 : 1) }); }}>
-                  {readingNovel.is_liked ? "❤️ 좋아요 취소" : "🤍 좋아요"} {readingNovel.like_count || 0}
-                </button>
-                {isMyNovel && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                    <button style={{ padding: "12px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14 }}
-                      onClick={() => {
-                        setNovel(readingNovel.content);
-                        setEditedNovel(readingNovel.content);
-                        setIsEditing(true);
-                        setStep("result");
-                        setView("create");
-                        setReadingNovel(null);
-                      }}>✏️ 편집</button>
-                    <button style={{ padding: "12px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14 }}
-                      onClick={() => {
-                        setNovel(readingNovel.content);
-                        setEditedNovel(readingNovel.content);
-                        setStep("result");
-                        setView("create");
-                        setReadingNovel(null);
-                        setTimeout(() => continueNovel(), 100);
-                      }}>📖 이어쓰기</button>
-                  </div>
-                )}
-              </div>
+            </div>
+
+            {/* 하단 버튼 */}
+            <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 640, padding: "10px 16px 20px", background: "#0d0a14ee", borderTop: "1px solid #2d2040" }}>
+              <button style={{ width: "100%", padding: "11px", background: readingNovel.is_liked ? "#2d1f4e" : "transparent", border: `1.5px solid ${readingNovel.is_liked ? "#7c3aed" : "#2d2040"}`, borderRadius: 12, color: readingNovel.is_liked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, marginBottom: 8 }}
+                onClick={() => { toggleLike(readingNovel.id, !!readingNovel.is_liked); setReadingNovel({ ...readingNovel, is_liked: !readingNovel.is_liked, like_count: (readingNovel.like_count || 0) + (readingNovel.is_liked ? -1 : 1) }); }}>
+                {readingNovel.is_liked ? "❤️ 좋아요 취소" : "🤍 좋아요"} {readingNovel.like_count || 0}
+              </button>
+              {isMyNovel && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
+                    onClick={() => editFromLibrary(readingNovel)}>✏️ 편집</button>
+                  <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #7c3aed", borderRadius: 12, color: "#c4b8ff", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
+                    onClick={() => continueFromLibrary(readingNovel)}>📖 다음 화 쓰기</button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -496,6 +587,22 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
             <>
               {step === "form" && (
                 <div className="fade-in">
+                  {/* 시리즈 정보 */}
+                  {currentSeriesId && (
+                    <div style={{ background: "#1a1228", border: "1px solid #7c3aed", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#7c3aed", marginBottom: 2 }}>연재 중</div>
+                        <div style={{ fontSize: 14, color: "#c4b8d8" }}>{seriesTitle || "제목 없음"} — {currentEpisode}화 작성 중</div>
+                      </div>
+                      <button style={{ background: "none", border: "none", color: "#5a4a6a", cursor: "pointer", fontSize: 12, fontFamily: "'Noto Serif KR', serif" }} onClick={() => { setCurrentSeriesId(null); setCurrentEpisode(1); setSeriesTitle(""); }}>새 작품</button>
+                    </div>
+                  )}
+
+                  <div className="section">
+                    <div className="section-title">시리즈 제목 <span style={{ color: "#3a2a4a", fontWeight: 400 }}>(연재 시 입력)</span></div>
+                    <input className="input-field" placeholder="예: 달빛 아래서 — 비워두면 1화 제목이 시리즈 제목이 돼요" value={seriesTitle} onChange={(e) => setSeriesTitle(e.target.value)} />
+                  </div>
+
                   <div className="section">
                     <div className="section-title">장르</div>
                     <div className="genre-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
@@ -581,7 +688,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                   </div>
 
                   <div className="section">
-                    <div className="section-title">제목</div>
+                    <div className="section-title">이번 화 제목</div>
                     <input className="input-field" placeholder="비우면 AI가 정해요" value={title} onChange={(e) => setTitle(e.target.value)} />
                   </div>
 
@@ -612,7 +719,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
 
                   {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {error}</div>}
                   <button className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 14 }} onClick={generateNovel} disabled={loading}>
-                    {loading ? <><span className="spinner" /> 생성 중...</> : "✨ 소설 생성하기"}
+                    {loading ? <><span className="spinner" /> 생성 중...</> : `✨ ${currentEpisode}화 생성하기`}
                   </button>
                 </div>
               )}
@@ -620,17 +727,18 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
               {step === "result" && (
                 <div className="fade-in">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingTop: 8 }}>
-                    <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => { setStep("form"); setNovel(""); setIsEditing(false); }}>← 다시 만들기</button>
+                    <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13 }} onClick={resetForm}>← 처음으로</button>
+                    <div style={{ fontSize: 13, color: "#7c3aed", fontWeight: 600 }}>{currentEpisode}화</div>
                     <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13, borderColor: isEditing ? accentColor : "#2d2040", color: isEditing ? accentColor : "#9a8aaa" }}
-                      onClick={() => { setIsEditing(!isEditing); setEditedNovel(novel); }} disabled={loading}>
+                      onClick={() => { setIsEditing(!isEditing); if (!isEditing) setEditedNovel(novel); }} disabled={loading}>
                       {isEditing ? "✅ 완료" : "✏️ 편집"}
                     </button>
                   </div>
 
                   <div style={{ background: "#160f22", border: `1.5px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "24px 20px", minHeight: 280 }}>
                     {loading && <div style={{ textAlign: "center", padding: "40px 0", color: "#5a4a6a" }}><div style={{ fontSize: 28, marginBottom: 12 }}>✍️</div><div>이야기를 쓰고 있어요...</div></div>}
-                    {!loading && isEditing && <textarea className="novel-editor" value={editedNovel} onChange={(e) => setEditedNovel(e.target.value)} />}
-                    {!loading && !isEditing && novel && <div style={{ lineHeight: 2.1, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
+                    {!loading && isEditing && <textarea className="novel-editor" value={editedNovel} onChange={(e) => setEditedNovel(e.target.value)} style={{ height: Math.max(300, (editedNovel.split("\n").length) * 36) }} />}
+                    {!loading && !isEditing && novel && <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
                   </div>
 
                   {!loading && novel && (
@@ -642,21 +750,23 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                             <span style={{ position: "absolute", height: 18, width: 18, left: isPublic ? 23 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
                           </span>
                         </label>
-                        <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 공개 — 둘러보기에 표시" : "🔒 비공개 — 나만 볼 수 있음"}</span>
+                        <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 공개" : "🔒 비공개"}</span>
                       </div>
+
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                        <button className="btn btn-primary" onClick={continueNovel} disabled={continuing} style={{ fontSize: 14 }}>
-                          {continuing ? <><span className="spinner" /> 이어쓰는 중...</> : "📖 이어쓰기"}
+                        <button className="btn btn-outline" onClick={continueNovel} disabled={continuing} style={{ fontSize: 13 }}>
+                          {continuing ? <><span className="spinner" /></> : "✍️ 이어쓰기"}
                         </button>
-                        <button className="btn btn-outline" onClick={saveNovel} disabled={saving} style={{ fontSize: 14, borderColor: saveMsg ? "#86efac" : "#2d2040", color: saveMsg ? "#86efac" : "#9a8aaa" }}>
-                          {saving ? <><span className="spinner" /></> : saveMsg || "💾 저장"}
+                        <button className="btn btn-primary" onClick={saveNovel} disabled={saving} style={{ fontSize: 13, background: saveMsg ? "linear-gradient(135deg,#065f46,#059669)" : undefined }}>
+                          {saving ? <><span className="spinner" /></> : saveMsg || `💾 ${currentEpisode}화 저장`}
                         </button>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                        <button className="btn btn-outline" onClick={() => { setIsEditing(true); setEditedNovel(novel); }} disabled={isEditing} style={{ fontSize: 13 }}>✏️ 편집</button>
-                        <button className="btn btn-outline" onClick={saveAsText} style={{ fontSize: 13 }}>📄 txt</button>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <button className="btn btn-outline" onClick={generateNextEpisode} disabled={loading} style={{ fontSize: 13, borderColor: "#7c3aed", color: "#a78bfa" }}>
+                          📖 다음 화 생성
+                        </button>
                         <button className="btn btn-outline" onClick={copyToClipboard} style={{ fontSize: 13, borderColor: copied ? "#86efac" : "#2d2040", color: copied ? "#86efac" : "#9a8aaa" }}>
-                          {copied ? "✅" : "📋 복사"}
+                          {copied ? "✅ 복사됨" : "📋 복사"}
                         </button>
                       </div>
                     </>
