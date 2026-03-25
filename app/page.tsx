@@ -16,19 +16,19 @@ const LENGTHS = [
 ];
 
 export default function Home() {
-  const [genre, setGenre] = useState(null);
-  const [keywords, setKeywords] = useState("");
-  const [protagonist, setProtagonist] = useState("");
-  const [protagonistDesc, setProtagonistDesc] = useState("");
-  const [length, setLength] = useState("short");
-  const [novel, setNovel] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [step, setStep] = useState("form");
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedNovel, setEditedNovel] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [continuing, setContinuing] = useState(false);
+  const [genre, setGenre] = useState<string | null>(null);
+  const [keywords, setKeywords] = useState<string>("");
+  const [protagonist, setProtagonist] = useState<string>("");
+  const [protagonistDesc, setProtagonistDesc] = useState<string>("");
+  const [length, setLength] = useState<string>("short");
+  const [novel, setNovel] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [step, setStep] = useState<string>("form");
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editedNovel, setEditedNovel] = useState<string>("");
+  const [copied, setCopied] = useState<boolean>(false);
+  const [continuing, setContinuing] = useState<boolean>(false);
 
   const selectedGenre = GENRES.find((g) => g.id === genre);
   const accentColor = selectedGenre?.color || "#a78bfa";
@@ -44,7 +44,7 @@ export default function Home() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setNovel(data.text); setEditedNovel(data.text);
-    } catch (e) { setError("오류: " + e.message); setStep("form"); }
+    } catch (e: any) { setError("오류: " + e.message); setStep("form"); }
     finally { setLoading(false); }
   }
 
@@ -58,7 +58,7 @@ export default function Home() {
       if (data.error) throw new Error(data.error);
       const cont = currentText + "\n\n" + data.text;
       setNovel(cont); setEditedNovel(cont);
-    } catch (e) { alert("이어쓰기 오류: " + e.message); }
+    } catch (e: any) { alert("이어쓰기 오류: " + e.message); }
     finally { setContinuing(false); }
   }
 
