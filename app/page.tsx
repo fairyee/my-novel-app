@@ -146,8 +146,25 @@ export default function Home() {
   }
 
   async function fetchMyNovels() {
-    const { data } = await supabase.from("novels").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setMyNovels(data || []);
+    const { data } = await supabase.from("novels").select("*").eq("user_id", user.id).order("episode_number", { ascending: true });
+    // 시리즈별로 묶기 - 각 시리즈의 첫 번째 화만 카드로 표시
+    const seriesMap: Record<string, Novel[]> = {};
+    const noSeriesNovels: Novel[] = [];
+    (data || []).forEach((n: Novel) => {
+      if (n.series_id) {
+        if (!seriesMap[n.series_id]) seriesMap[n.series_id] = [];
+        seriesMap[n.series_id].push(n);
+      } else {
+        noSeriesNovels.push(n);
+      }
+    });
+    // 시리즈는 첫 화만 대표로, episodes 정보 포함
+    const grouped: Novel[] = [];
+    Object.values(seriesMap).forEach((episodes) => {
+      const first = { ...episodes[0], _episodes: episodes } as any;
+      grouped.push(first);
+    });
+    setMyNovels([...grouped, ...noSeriesNovels]);
   }
 
   async function fetchLikedNovels() {
@@ -213,6 +230,7 @@ export default function Home() {
   async function saveNovel() {
     if (!user) { setShowAuth(true); return; }
     setSaving(true); setSaveMsg("");
+    console.log("저장 시도 - user:", user?.id);
     const content = isEditing ? editedNovel : novel;
     const novelTitle = title || content.split("\n")[0] || "제목 없음";
     const sid = currentSeriesId || crypto.randomUUID();
@@ -228,6 +246,7 @@ export default function Home() {
       series_id: sid,
       episode_number: currentEpisode,
       series_title: seriesTitle || novelTitle,
+      created_at: new Date().toISOString(),
     });
     if (!error) {
       setSaveMsg(`${currentEpisode}화 저장됐어요! ✅`);
@@ -374,7 +393,11 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, padding: "16px", marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s" }}
       onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
       onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
-      onClick={() => openNovel(n, showActions)}>
+      onClick={() => {
+        const ep = (n as any)._episodes;
+        if (ep && ep.length > 0) openNovel(ep[0], showActions);
+        else openNovel(n, showActions);
+      }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {n.series_title && n.series_title !== n.title && (

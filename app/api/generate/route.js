@@ -14,7 +14,7 @@ export async function POST(req) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: tokens || 1500,
+        max_tokens: tokens || 3000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
