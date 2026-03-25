@@ -74,6 +74,7 @@ export default function Home() {
   const [exploreTab, setExploreTab] = useState<"latest"|"popular">("latest");
   const [searchQuery, setSearchQuery] = useState("");
   const [readingNovel, setReadingNovel] = useState<Novel|null>(null);
+  const [isMyNovel, setIsMyNovel] = useState(false);
 
   const [genre, setGenre] = useState<string|null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -171,9 +172,10 @@ export default function Home() {
     fetchPublicNovels();
   }
 
-  async function openNovel(n: Novel) {
+  async function openNovel(n: Novel, mine = false) {
     await supabase.rpc("increment_views", { novel_id: n.id });
     setReadingNovel({ ...n, views: n.views + 1 });
+    setIsMyNovel(mine);
   }
 
   async function handleAuth() {
@@ -289,7 +291,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, padding: "16px", marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s" }}
       onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
       onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
-      onClick={() => openNovel(n)}>
+      onClick={() => openNovel(n, showActions)}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</div>
@@ -297,7 +299,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         </div>
         {showActions && (
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-            <label style={{ position: "relative", width: 32, height: 18, cursor: "pointer" }}>
+            <label style={{ position: "relative", width: 32, height: 18, cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); }}>
               <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={n.is_public} onChange={() => togglePublic(n.id, n.is_public)} />
               <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: n.is_public ? "#7c3aed" : "#2d2040", borderRadius: 18, transition: "0.3s" }}>
                 <span style={{ position: "absolute", height: 12, width: 12, left: n.is_public ? 17 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
@@ -460,6 +462,28 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                   onClick={() => { toggleLike(readingNovel.id, !!readingNovel.is_liked); setReadingNovel({ ...readingNovel, is_liked: !readingNovel.is_liked, like_count: (readingNovel.like_count || 0) + (readingNovel.is_liked ? -1 : 1) }); }}>
                   {readingNovel.is_liked ? "❤️ 좋아요 취소" : "🤍 좋아요"} {readingNovel.like_count || 0}
                 </button>
+                {isMyNovel && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                    <button style={{ padding: "12px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14 }}
+                      onClick={() => {
+                        setNovel(readingNovel.content);
+                        setEditedNovel(readingNovel.content);
+                        setIsEditing(true);
+                        setStep("result");
+                        setView("create");
+                        setReadingNovel(null);
+                      }}>✏️ 편집</button>
+                    <button style={{ padding: "12px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14 }}
+                      onClick={() => {
+                        setNovel(readingNovel.content);
+                        setEditedNovel(readingNovel.content);
+                        setStep("result");
+                        setView("create");
+                        setReadingNovel(null);
+                        setTimeout(() => continueNovel(), 100);
+                      }}>📖 이어쓰기</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
