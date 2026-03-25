@@ -312,7 +312,7 @@ ${title ? `이번 화 제목: ${title}` : ""}
 시점: ${pov === "first" ? "1인칭" : "3인칭"}
 ${synopsis ? `줄거리/설정: ${synopsis}` : ""}
 ${charDesc ? `등장인물:\n${charDesc}` : ""}
-분량: 500~800자
+분량: 1000~1500자, 반드시 완성된 문장으로 끝내기
 규칙: 제목을 먼저 쓰고 한 줄 띄우기. 생생한 묘사와 대화 포함. 마크다운 없이 순수 텍스트로.`;
     try {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 1000 }) });
