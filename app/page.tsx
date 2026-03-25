@@ -328,7 +328,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 16px; }
-        body { background: #0d0a14; min-height: 100vh; overflow-x: hidden; }
+        body { background: #0d0a14; min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; }
         .genre-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #c4b8d8; border-radius: 10px; padding: 10px 6px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; text-align: center; width: 100%; }
         .genre-btn:hover, .genre-btn.selected { background: #221738; color: #fff; }
         .tag-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 20px; padding: 5px 12px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; white-space: nowrap; }
