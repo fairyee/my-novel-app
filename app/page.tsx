@@ -226,16 +226,35 @@ export default function Home() {
     const novelTitle = title || content.split("\n")[0] || "제목 없음";
     const sid = currentSeriesId || crypto.randomUUID();
     if (!currentSeriesId) setCurrentSeriesId(sid);
-    const { error } = await supabase.from("novels").insert({
-      user_id: user.id, title: novelTitle, content,
-      genre: selectedGenre?.label || "", tags: selectedTags.join(", "),
-      is_public: isPublic, views: 0, series_id: sid,
-      episode_number: currentEpisode,
-      series_title: seriesTitle || novelTitle,
-      created_at: new Date().toISOString(),
-    });
-    if (!error) setCurrentEpisode(prev => prev + 1);
-    setSaveMsg(error ? "저장 실패 😢" : `${currentEpisode}화 저장됐어요! ✅`);
+
+    // 이미 저장된 화인지 확인
+    const { data: existing } = await supabase
+      .from("novels")
+      .select("id")
+      .eq("series_id", sid)
+      .eq("episode_number", currentEpisode)
+      .maybeSingle();
+
+    let saveError = null;
+    if (existing) {
+      const { error } = await supabase
+        .from("novels")
+        .update({ content, title: novelTitle, is_public: isPublic })
+        .eq("id", existing.id);
+      saveError = error;
+    } else {
+      const { error } = await supabase.from("novels").insert({
+        user_id: user.id, title: novelTitle, content,
+        genre: selectedGenre?.label || "", tags: selectedTags.join(", "),
+        is_public: isPublic, views: 0, series_id: sid,
+        episode_number: currentEpisode,
+        series_title: seriesTitle || novelTitle,
+        created_at: new Date().toISOString(),
+      });
+      saveError = error;
+    }
+
+    setSaveMsg(saveError ? "저장 실패 😢" : `${currentEpisode}화 저장됐어요! ✅`);
     setSaving(false);
     setTimeout(() => setSaveMsg(""), 3000);
   }
