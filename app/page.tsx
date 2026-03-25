@@ -37,7 +37,7 @@ export default function Home() {
     if (!genre) { setError("장르를 선택해주세요."); return; }
     if (!keywords.trim()) { setError("키워드/주제를 입력해주세요."); return; }
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false);
-    const lengthObj = LENGTHS.find((l) => l.id === length);
+    const lengthObj = LENGTHS.find((l) => l.id === length)!;
     const prompt = `당신은 감성적이고 몰입감 있는 한국 소설 작가입니다. 아래 설정으로 ${lengthObj.label}(${lengthObj.desc}) 소설을 한국어로 써주세요.\n장르: ${selectedGenre?.label}\n키워드/주제: ${keywords}\n주인공 이름: ${protagonist || "이름 없음"}\n주인공 설정: ${protagonistDesc || "특별한 설정 없음"}\n분량: ${lengthObj.desc} 내외\n규칙: 제목을 먼저 쓰고 한 줄 띄우기. 생생한 묘사와 대화 포함. 마크다운 없이 순수 텍스트로.`;
     try {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: lengthObj.tokens }) });
