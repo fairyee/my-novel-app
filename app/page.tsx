@@ -363,7 +363,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         }
       `}</style>
 
-      <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh", maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh", maxWidth: 640, margin: "0 auto", width: "100%" }}>
 
         {/* 헤더 */}
         <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#0d0a14cc", backdropFilter: "blur(12px)", borderBottom: "1px solid #2d2040", padding: "0 16px" }}>
@@ -625,12 +625,12 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                           {continuing ? <><span className="spinner" /> 이어쓰는 중...</> : "📖 이어쓰기"}
                         </button>
                         <button className="btn btn-outline" onClick={saveNovel} disabled={saving} style={{ fontSize: 14, borderColor: saveMsg ? "#86efac" : "#2d2040", color: saveMsg ? "#86efac" : "#9a8aaa" }}>
-                          {saving ? <><span className="spinner" /></> : saveMsg || "💾 서재 저장"}
+                          {saving ? <><span className="spinner" /></> : saveMsg || "💾 저장"}
                         </button>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                        <button className="btn btn-outline" onClick={generateNovel} disabled={loading} style={{ fontSize: 13 }}>🔄 재생성</button>
-                        <button className="btn btn-outline" onClick={saveAsText} style={{ fontSize: 13 }}>📄 저장</button>
+                        <button className="btn btn-outline" onClick={() => { setIsEditing(true); setEditedNovel(novel); }} disabled={isEditing} style={{ fontSize: 13 }}>✏️ 편집</button>
+                        <button className="btn btn-outline" onClick={saveAsText} style={{ fontSize: 13 }}>📄 txt</button>
                         <button className="btn btn-outline" onClick={copyToClipboard} style={{ fontSize: 13, borderColor: copied ? "#86efac" : "#2d2040", color: copied ? "#86efac" : "#9a8aaa" }}>
                           {copied ? "✅" : "📋 복사"}
                         </button>
