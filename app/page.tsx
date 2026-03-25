@@ -735,10 +735,10 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                     </button>
                   </div>
 
-                  <div style={{ background: "#160f22", border: `1.5px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "24px 20px", minHeight: 280 }}>
+                  <div style={{ background: "#160f22", border: `1.5px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "24px 20px" }}>
                     {loading && <div style={{ textAlign: "center", padding: "40px 0", color: "#5a4a6a" }}><div style={{ fontSize: 28, marginBottom: 12 }}>✍️</div><div>이야기를 쓰고 있어요...</div></div>}
                     {!loading && isEditing && <textarea className="novel-editor" value={editedNovel} onChange={(e) => setEditedNovel(e.target.value)} style={{ height: Math.max(300, (editedNovel.split("\n").length) * 36) }} />}
-                    {!loading && !isEditing && novel && <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
+                    {!loading && !isEditing && novel && <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300, wordBreak: "keep-all" }}>{novel}</div>}
                   </div>
 
                   {!loading && novel && (
