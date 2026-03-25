@@ -4,17 +4,16 @@ import { createClient } from "./lib/supabase";
 
 const GENRES = [
   { id: "romance", label: "💕 로맨스", color: "#f472b6" },
-  { id: "bl", label: "💙 BL", color: "#818cf8" },
-  { id: "gl", label: "💜 GL", color: "#c084fc" },
   { id: "fantasy", label: "🧙 판타지", color: "#a78bfa" },
   { id: "modern_fantasy", label: "✨ 현대판타지", color: "#67e8f9" },
   { id: "murim", label: "⚔️ 무협", color: "#fcd34d" },
-  { id: "thriller", label: "🔪 스릴러", color: "#f87171" },
+  { id: "thriller", label: "🔪 스릴러/호러", color: "#f87171" },
   { id: "mystery", label: "🔍 미스터리", color: "#fbbf24" },
   { id: "sf", label: "🚀 SF", color: "#38bdf8" },
-  { id: "horror", label: "👻 호러", color: "#a3a3a3" },
   { id: "modern", label: "🏙️ 현대물", color: "#6ee7b7" },
   { id: "historical", label: "📜 역사", color: "#86efac" },
+  { id: "bl", label: "💙 BL", color: "#818cf8" },
+  { id: "gl", label: "💜 GL", color: "#c084fc" },
 ];
 
 const PRESET_TAGS = [
@@ -49,18 +48,23 @@ const POVS = [
 ];
 
 interface Character { id: number; name: string; desc: string; role: string; }
-interface Novel { id: string; title: string; content: string; genre: string; tags: string; is_public: boolean; created_at: string; views: number; like_count?: number; is_liked?: boolean; }
+interface Novel { id: string; title: string; content: string; genre: string; tags: string; is_public: boolean; created_at: string; views: number; like_count?: number; is_liked?: boolean; author_nickname?: string; }
+interface Profile { id: string; nickname: string; }
 
 export default function Home() {
   const supabase = createClient();
 
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [authMode, setAuthMode] = useState<"login"|"signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [nicknameSaving, setNicknameSaving] = useState(false);
 
   const [myNovels, setMyNovels] = useState<Novel[]>([]);
   const [likedNovels, setLikedNovels] = useState<Novel[]>([]);
@@ -98,14 +102,36 @@ export default function Home() {
   const accentColor = selectedGenre?.color || "#a78bfa";
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
-    supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user ?? null;
+      setUser(u);
+      if (u) fetchProfile(u.id);
+    });
+    supabase.auth.onAuthStateChange((_e, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) fetchProfile(u.id);
+    });
   }, []);
 
   useEffect(() => {
     if (view === "library" && user) { fetchMyNovels(); fetchLikedNovels(); }
     if (view === "explore") fetchPublicNovels();
   }, [view, user, exploreTab]);
+
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    if (data) { setProfile(data); setNicknameInput(data.nickname); }
+  }
+
+  async function saveNickname() {
+    if (!user || !nicknameInput.trim()) return;
+    setNicknameSaving(true);
+    await supabase.from("profiles").upsert({ id: user.id, nickname: nicknameInput.trim() });
+    await fetchProfile(user.id);
+    setNicknameSaving(false);
+    setShowProfile(false);
+  }
 
   async function fetchMyNovels() {
     const { data } = await supabase.from("novels").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
@@ -161,7 +187,7 @@ export default function Home() {
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut(); setUser(null); setView("create");
+    await supabase.auth.signOut(); setUser(null); setProfile(null); setView("create");
   }
 
   async function saveNovel() {
@@ -283,7 +309,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         )}
       </div>
       <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.7, maxHeight: 60, overflow: "hidden", WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent)", marginBottom: 10 }}>
-        {n.content.split("\n").filter(l => l.trim()).slice(1, 4).join(" ")}
+        {n.content.split("\n").filter((l: string) => l.trim()).slice(1, 4).join(" ")}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a" }} onClick={(e) => e.stopPropagation()}>
         <span>👁 {n.views || 0}</span>
@@ -334,8 +360,6 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
         @media (max-width: 480px) {
           .genre-grid { grid-template-columns: repeat(3, 1fr) !important; }
-          .opt-row { flex-wrap: wrap; }
-          .opt-btn { flex: 1 1 45%; }
         }
       `}</style>
 
@@ -352,8 +376,11 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
             </div>
             {user ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "#7a6a8a", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email?.split("@")[0]}</span>
-                <button className="btn btn-outline" style={{ padding: "6px 12px", fontSize: 12 }} onClick={handleLogout}>로그아웃</button>
+                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#c4b8d8", fontSize: 13, fontFamily: "'Noto Serif KR', serif", display: "flex", alignItems: "center", gap: 4 }}
+                  onClick={() => { setShowProfile(true); setNicknameInput(profile?.nickname || ""); }}>
+                  👤 {profile?.nickname || user.email?.split("@")[0]}
+                </button>
+                <button className="btn btn-outline" style={{ padding: "6px 10px", fontSize: 12 }} onClick={handleLogout}>로그아웃</button>
               </div>
             ) : (
               <button className="btn btn-primary" style={{ padding: "7px 16px", fontSize: 13 }} onClick={() => setShowAuth(true)}>로그인</button>
@@ -364,8 +391,8 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         {/* 네비게이션 */}
         <nav style={{ display: "flex", borderBottom: "1px solid #2d2040", background: "#0d0a14" }}>
           <button className={`nav-btn${view === "create" ? " active" : ""}`} onClick={() => { setView("create"); setStep("form"); }}>✍️ 창작</button>
-          <button className={`nav-btn${view === "library" ? " active" : ""}`} onClick={() => setView("library")}>📚 서재</button>
           <button className={`nav-btn${view === "explore" ? " active" : ""}`} onClick={() => setView("explore")}>🔍 둘러보기</button>
+          <button className={`nav-btn${view === "library" ? " active" : ""}`} onClick={() => setView("library")}>📚 서재</button>
         </nav>
 
         {/* 로그인 모달 */}
@@ -393,12 +420,31 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
           </div>
         )}
 
-        {/* 소설 읽기 모달 */}
+        {/* 프로필 모달 */}
+        {showProfile && (
+          <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+            onClick={() => setShowProfile(false)}>
+            <div style={{ background: "#1a1228", borderRadius: "20px 20px 0 0", padding: "28px 20px 40px", width: "100%", maxWidth: 480 }}
+              onClick={(e) => e.stopPropagation()}>
+              <div style={{ width: 36, height: 4, background: "#2d2040", borderRadius: 2, margin: "0 auto 24px" }} />
+              <h2 style={{ marginBottom: 8, fontSize: 18, fontWeight: 600, textAlign: "center" }}>프로필</h2>
+              <div style={{ fontSize: 12, color: "#5a4a6a", textAlign: "center", marginBottom: 20 }}>{user?.email}</div>
+              <div style={{ fontSize: 12, color: "#7a6a8a", marginBottom: 8 }}>닉네임</div>
+              <input className="input-field" style={{ marginBottom: 16 }} placeholder="닉네임 입력" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveNickname(); }} />
+              <button className="btn btn-primary" style={{ width: "100%", padding: 14, fontSize: 15 }} onClick={saveNickname} disabled={nicknameSaving}>
+                {nicknameSaving ? <><span className="spinner" /> 저장 중...</> : "저장"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 소설 읽기 */}
         {readingNovel && (
-          <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, overflowY: "auto" }}>
-            <div style={{ background: "#0d0a14", minHeight: "100%", maxWidth: 640, margin: "0 auto", padding: "0 0 60px" }}>
+          <div style={{ position: "fixed", inset: 0, background: "#0d0a14", zIndex: 100, overflowY: "auto" }}>
+            <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 80 }}>
               <div style={{ position: "sticky", top: 0, background: "#0d0a14cc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #2d2040" }}>
-                <button style={{ background: "none", border: "none", color: "#9a8aaa", fontSize: 14, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", display: "flex", alignItems: "center", gap: 4 }} onClick={() => setReadingNovel(null)}>← 뒤로</button>
+                <button style={{ background: "none", border: "none", color: "#9a8aaa", fontSize: 14, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }} onClick={() => setReadingNovel(null)}>← 뒤로</button>
                 <div style={{ display: "flex", gap: 12, fontSize: 12, color: "#5a4a6a" }}>
                   <span>👁 {readingNovel.views}</span>
                   <span>❤️ {readingNovel.like_count || 0}</span>
@@ -461,10 +507,10 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
 
                   <div className="section">
                     <div className="section-title">문체</div>
-                    <div className="opt-row" style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {STYLES.map((s) => (
                         <button key={s.id} className={`opt-btn${style === s.id ? " selected" : ""}`}
-                          style={style === s.id ? { borderColor: accentColor } : {}}
+                          style={{ ...(style === s.id ? { borderColor: accentColor } : {}), flex: "1 1 40%" }}
                           onClick={() => setStyle(style === s.id ? null : s.id)}>{s.label}</button>
                       ))}
                     </div>
@@ -586,7 +632,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                         <button className="btn btn-outline" onClick={generateNovel} disabled={loading} style={{ fontSize: 13 }}>🔄 재생성</button>
                         <button className="btn btn-outline" onClick={saveAsText} style={{ fontSize: 13 }}>📄 저장</button>
                         <button className="btn btn-outline" onClick={copyToClipboard} style={{ fontSize: 13, borderColor: copied ? "#86efac" : "#2d2040", color: copied ? "#86efac" : "#9a8aaa" }}>
-                          {copied ? "✅ 복사됨" : "📋 복사"}
+                          {copied ? "✅" : "📋 복사"}
                         </button>
                       </div>
                     </>
@@ -594,6 +640,27 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                 </div>
               )}
             </>
+          )}
+
+          {/* 둘러보기 */}
+          {view === "explore" && (
+            <div className="fade-in">
+              <div style={{ marginBottom: 12 }}>
+                <input className="input-field" placeholder="🔍 제목, 장르, 태그 검색..."
+                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") fetchPublicNovels(); }} />
+              </div>
+              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 16 }}>
+                <button className={`tab-btn${exploreTab === "latest" ? " active" : ""}`} onClick={() => setExploreTab("latest")}>🆕 최신</button>
+                <button className={`tab-btn${exploreTab === "popular" ? " active" : ""}`} onClick={() => setExploreTab("popular")}>🔥 인기</button>
+              </div>
+              {publicNovels.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+                  <div>아직 공개된 소설이 없어요</div>
+                </div>
+              ) : publicNovels.map((n) => <NovelCard key={n.id} n={n} />)}
+            </div>
           )}
 
           {/* 서재 */}
@@ -624,27 +691,6 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                   </div>
                 ) : likedNovels.map((n) => <NovelCard key={n.id} n={n} />)
               )}
-            </div>
-          )}
-
-          {/* 둘러보기 */}
-          {view === "explore" && (
-            <div className="fade-in">
-              <div style={{ marginBottom: 12 }}>
-                <input className="input-field" placeholder="🔍 제목, 장르, 태그 검색..."
-                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") fetchPublicNovels(); }} />
-              </div>
-              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 16 }}>
-                <button className={`tab-btn${exploreTab === "latest" ? " active" : ""}`} onClick={() => setExploreTab("latest")}>🆕 최신</button>
-                <button className={`tab-btn${exploreTab === "popular" ? " active" : ""}`} onClick={() => setExploreTab("popular")}>🔥 인기</button>
-              </div>
-              {publicNovels.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-                  <div>아직 공개된 소설이 없어요</div>
-                </div>
-              ) : publicNovels.map((n) => <NovelCard key={n.id} n={n} />)}
             </div>
           )}
         </main>
