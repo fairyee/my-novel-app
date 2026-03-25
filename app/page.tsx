@@ -23,12 +23,17 @@ const PRESET_TAGS = [
   "용사와 마왕", "오해와 화해", "소꿉친구", "재벌", "빙의",
 ];
 
-const MOODS = [
-  { id: "sweet", label: "🍬 달달" },
-  { id: "sad", label: "😢 슬픔" },
-  { id: "dark", label: "🌑 다크" },
-  { id: "funny", label: "😂 웃음" },
-  { id: "tense", label: "⚡ 긴장" },
+const STYLES = [
+  { id: "lyrical", label: "🌸 감성/서정적" },
+  { id: "fast", label: "⚡ 빠른 전개" },
+  { id: "dialogue", label: "💬 대화 위주" },
+  { id: "descriptive", label: "🎨 묘사 위주" },
+];
+
+const ENDINGS = [
+  { id: "happy", label: "😊 해피엔딩" },
+  { id: "sad", label: "😢 새드엔딩" },
+  { id: "open", label: "🌫️ 열린 결말" },
 ];
 
 const RATINGS = [
@@ -53,7 +58,8 @@ export default function Home() {
   const [genre, setGenre] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState<string>("");
-  const [mood, setMood] = useState<string | null>(null);
+  const [style, setStyle] = useState<string | null>(null);
+  const [ending, setEnding] = useState<string | null>(null);
   const [rating, setRating] = useState<string>("all");
   const [pov, setPov] = useState<string>("third");
   const [title, setTitle] = useState<string>("");
@@ -82,6 +88,7 @@ export default function Home() {
   }
 
   function addCharacter() {
+    if (characters.length >= 5) return;
     setCharacters((prev) => [...prev, { id: Date.now(), name: "", desc: "", role: "조연" }]);
   }
 
@@ -97,12 +104,15 @@ export default function Home() {
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false);
     const ratingLabel = rating === "all" ? "전체가 (순수하고 건전하게)" : rating === "teen" ? "15세 이상 (약간의 긴장감, 키스 정도)" : "성인 (키스, 스킨십, 성적 암시 포함, 노골적이지 않게)";
     const povLabel = pov === "first" ? "1인칭 (나는, 내가)" : "3인칭 (그는, 그녀는)";
+    const styleLabel = STYLES.find(s => s.id === style)?.label || "자유";
+    const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "자유";
     const charDesc = characters.filter(c => c.name || c.desc).map(c => `- ${c.role} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`).join("\n");
     const prompt = `당신은 감성적이고 몰입감 있는 한국 소설 작가입니다. 아래 설정으로 소설을 한국어로 써주세요.
 ${title ? `작품 제목: ${title}` : ""}
 장르: ${selectedGenre?.label || "자유"}
 태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "자유"}
-분위기: ${MOODS.find(m => m.id === mood)?.label || "자유"}
+문체: ${styleLabel}
+결말 방향: ${endingLabel}
 수위: ${ratingLabel}
 시점: ${povLabel}
 ${synopsis ? `줄거리/설정: ${synopsis}` : ""}
@@ -161,15 +171,16 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         .input-field:focus { border-color: #7c3aed; }
         .input-field::placeholder { color: #5a4a6a; }
         .char-card { background: #160f22; border: 1.5px solid #2d2040; border-radius: 12px; padding: 16px; margin-bottom: 10px; }
-        .char-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .role-select { background: #1a1228; border: 1.5px solid #2d2040; border-radius: 8px; padding: 8px 12px; color: #e8e0f0; font-family: 'Noto Serif KR', serif; font-size: 13px; outline: none; cursor: pointer; }
+        .char-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .role-badge { background: #2d1f4e; border: 1px solid #7c3aed; border-radius: 6px; padding: 6px 12px; color: #c4b8ff; font-family: 'Noto Serif KR', serif; font-size: 12px; white-space: nowrap; cursor: pointer; transition: all 0.2s; }
+        .role-badge:hover { background: #3d2f6e; }
         .btn { border: none; border-radius: 10px; padding: 10px 18px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
         .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
         .btn-outline { background: transparent; border: 1.5px solid #2d2040; color: #9a8aaa; }
         .btn-outline:hover { border-color: #7c3aed !important; color: #e8e0f0 !important; }
-        .btn-danger { background: transparent; border: 1.5px solid #3d1f1f; color: #f87171; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .btn-danger { background: transparent; border: 1.5px solid #3d1f1f; color: #f87171; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px; font-family: 'Noto Serif KR', serif; transition: all 0.2s; }
         .btn-danger:hover { background: #3d1f1f; }
         .novel-editor { width: 100%; background: transparent; border: none; outline: none; color: #ddd4ee; font-family: 'Noto Serif KR', serif; font-size: 16px; line-height: 2.1; resize: none; font-weight: 300; min-height: 400px; }
         .section-title { font-size: 13px; font-weight: 600; color: #c4b8d8; margin-bottom: 12px; }
@@ -231,18 +242,29 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
               </div>
 
               <div className="section">
-                <div className="section-title">03. 분위기 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {MOODS.map((m) => (
-                    <button key={m.id} className={`opt-btn${mood === m.id ? " selected" : ""}`}
-                      style={mood === m.id ? { borderColor: accentColor } : {}}
-                      onClick={() => setMood(mood === m.id ? null : m.id)}>{m.label}</button>
+                <div className="section-title">03. 문체 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {STYLES.map((s) => (
+                    <button key={s.id} className={`opt-btn${style === s.id ? " selected" : ""}`}
+                      style={{ ...(style === s.id ? { borderColor: accentColor } : {}), flex: "1 1 40%" }}
+                      onClick={() => setStyle(style === s.id ? null : s.id)}>{s.label}</button>
                   ))}
                 </div>
               </div>
 
               <div className="section">
-                <div className="section-title">04. 시점 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                <div className="section-title">04. 결말 방향 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {ENDINGS.map((e) => (
+                    <button key={e.id} className={`opt-btn${ending === e.id ? " selected" : ""}`}
+                      style={ending === e.id ? { borderColor: accentColor } : {}}
+                      onClick={() => setEnding(ending === e.id ? null : e.id)}>{e.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="section">
+                <div className="section-title">05. 시점 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {POVS.map((p) => (
                     <button key={p.id} className={`opt-btn${pov === p.id ? " selected" : ""}`}
@@ -256,7 +278,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
               </div>
 
               <div className="section">
-                <div className="section-title">05. 수위 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                <div className="section-title">06. 수위 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {RATINGS.map((r) => (
                     <button key={r.id} className={`opt-btn${rating === r.id ? " selected" : ""}`}
@@ -270,33 +292,35 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
               </div>
 
               <div className="section">
-                <div className="section-title">06. 작품 제목 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                <input className="input-field" placeholder="제목을 입력하면 그대로 사용돼요 (비우면 AI가 정해요)" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <div className="section-title">07. 작품 제목 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                <input className="input-field" placeholder="비우면 AI가 정해요" value={title} onChange={(e) => setTitle(e.target.value)} />
               </div>
 
               <div className="section">
-                <div className="section-title">07. 줄거리 / 배경 설정 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
-                <textarea className="input-field" rows={3} placeholder="예: 기억을 잃고 낯선 도시에서 깨어난 남자가 자신의 과거를 추적하는 이야기. 배경은 비 내리는 서울." value={synopsis} onChange={(e) => setSynopsis(e.target.value)} />
+                <div className="section-title">08. 줄거리 / 배경 설정 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                <textarea className="input-field" rows={3}
+                  placeholder="예: 기억을 잃고 낯선 도시에서 깨어난 남자가 자신의 과거를 추적하는 이야기. 배경은 비 내리는 서울."
+                  value={synopsis} onChange={(e) => setSynopsis(e.target.value)} />
               </div>
 
               <div className="section">
-                <div className="section-title">08. 등장인물 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
+                <div className="section-title">09. 등장인물 <span style={{ fontSize: 10, color: "#5a4a6a" }}>선택</span></div>
                 {characters.map((char, idx) => (
                   <div key={char.id} className="char-card">
                     <div className="char-row">
-                      <select className="role-select" value={char.role} onChange={(e) => updateCharacter(char.id, "role", e.target.value)}>
-                        <option>주인공</option>
-                        <option>히로인</option>
-                        <option>조연</option>
-                        <option>악역</option>
-                        <option>조력자</option>
-                      </select>
-                      <input className="input-field" style={{ flex: 1 }} placeholder="이름" value={char.name} onChange={(e) => updateCharacter(char.id, "name", e.target.value)} />
+                      <span className="role-badge"
+                        onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>
+                        {char.role} ↕
+                      </span>
+                      <input className="input-field" style={{ flex: 1 }} placeholder="이름 (예: 이서준)" value={char.name}
+                        onChange={(e) => updateCharacter(char.id, "name", e.target.value)} />
                       {idx > 0 && (
                         <button className="btn-danger" onClick={() => removeCharacter(char.id)}>삭제</button>
                       )}
                     </div>
-                    <textarea className="input-field" rows={2} placeholder="캐릭터 특징 (예: 냉정하고 계산적인 30대 CEO, 과거에 큰 상처가 있다)" value={char.desc} onChange={(e) => updateCharacter(char.id, "desc", e.target.value)} />
+                    <textarea className="input-field" rows={2}
+                      placeholder={genre === "bl" ? "예: 공, 냉정한 CEO, 집착형" : genre === "gl" ? "예: 攻, 활발한 성격, 먼저 고백" : "예: 차갑지만 따뜻한 마음을 숨기고 있는 30대 형사"}
+                      value={char.desc} onChange={(e) => updateCharacter(char.id, "desc", e.target.value)} />
                   </div>
                 ))}
                 {characters.length < 5 && (
@@ -307,7 +331,9 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
               </div>
 
               {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {error}</div>}
-              <button className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 12, justifyContent: "center" }} onClick={generateNovel} disabled={loading}>
+              <button className="btn btn-primary"
+                style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 12, justifyContent: "center" }}
+                onClick={generateNovel} disabled={loading}>
                 {loading ? <><span className="spinner" /> 생성 중...</> : "✨ 소설 생성하기"}
               </button>
             </div>
@@ -317,19 +343,21 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
             <div className="fade-in">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <button className="btn btn-outline" onClick={() => { setStep("form"); setNovel(""); setIsEditing(false); }}>← 다시 만들기</button>
-                <button className="btn btn-outline" style={{ borderColor: isEditing ? accentColor : "#2d2040", color: isEditing ? accentColor : "#9a8aaa" }}
+                <button className="btn btn-outline"
+                  style={{ borderColor: isEditing ? accentColor : "#2d2040", color: isEditing ? accentColor : "#9a8aaa" }}
                   onClick={() => { setIsEditing(!isEditing); setEditedNovel(novel); }} disabled={loading}>
                   {isEditing ? "✅ 편집 완료" : "✏️ 편집"}
                 </button>
               </div>
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-                {[selectedGenre?.label, ...selectedTags, MOODS.find(m => m.id === mood)?.label, RATINGS.find(r => r.id === rating)?.label].filter(Boolean).map((tag, i) => (
-                  <span key={i} style={{ background: "#1a1228", border: "1px solid #2d2040", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "#9a8aaa" }}>{tag}</span>
-                ))}
+                {[selectedGenre?.label, ...selectedTags, STYLES.find(s => s.id === style)?.label, ENDINGS.find(e => e.id === ending)?.label, RATINGS.find(r => r.id === rating)?.label]
+                  .filter(Boolean).map((tag, i) => (
+                    <span key={i} style={{ background: "#1a1228", border: "1px solid #2d2040", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "#9a8aaa" }}>{tag}</span>
+                  ))}
               </div>
 
-              <div style={{ background: "linear-gradient(180deg,#1a1228 0%,#160f22 100%)", border: `1px solid ${isEditing ? accentColor+"66" : "#2d2040"}`, borderRadius: 16, padding: "36px 32px", minHeight: 300, boxShadow: "0 8px 48px #0007", transition: "all 0.3s" }}>
+              <div style={{ background: "linear-gradient(180deg,#1a1228 0%,#160f22 100%)", border: `1px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "36px 32px", minHeight: 300, boxShadow: "0 8px 48px #0007", transition: "all 0.3s" }}>
                 {loading && <div style={{ textAlign: "center", padding: "48px 0", color: "#5a4a6a" }}><div style={{ fontSize: 32, marginBottom: 16 }}>✍️</div><div>이야기를 쓰고 있어요...</div></div>}
                 {!loading && isEditing && <textarea className="novel-editor" value={editedNovel} onChange={(e) => setEditedNovel(e.target.value)} />}
                 {!loading && !isEditing && novel && <div style={{ lineHeight: 2.1, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
