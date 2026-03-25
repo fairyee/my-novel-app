@@ -114,16 +114,13 @@ export default function Home() {
   const accentColor = selectedGenre?.color || "#a78bfa";
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user ?? null;
-      setUser(u);
-      if (u) fetchProfile(u.id);
-    });
-    supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       const u = session?.user ?? null;
       setUser(u);
       if (u) fetchProfile(u.id);
+      else setProfile(null);
     });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -227,7 +224,6 @@ export default function Home() {
     const sid = currentSeriesId || crypto.randomUUID();
     if (!currentSeriesId) setCurrentSeriesId(sid);
 
-    // 이미 저장된 화인지 확인
     const { data: existing } = await supabase
       .from("novels")
       .select("id")
@@ -259,10 +255,17 @@ export default function Home() {
     setTimeout(() => setSaveMsg(""), 3000);
   }
 
-  async function togglePublic(e: React.MouseEvent, id: string, current: boolean) {
+  // 화별 공개 토글
+  async function toggleEpisodePublic(e: React.MouseEvent, id: string, current: boolean) {
     e.stopPropagation(); e.preventDefault();
     await supabase.from("novels").update({ is_public: !current }).eq("id", id);
     fetchMyNovels();
+    // 읽기 화면에서도 업데이트
+    if (readingNovel?.id === id) {
+      setReadingNovel({ ...readingNovel, is_public: !current });
+    }
+    // readingSeries도 업데이트
+    setReadingSeries(prev => prev.map(ep => ep.id === id ? { ...ep, is_public: !current } : ep));
   }
 
   async function deleteEpisode(id: string) {
@@ -329,6 +332,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     finally { setLoading(false); }
   }
 
+  // 현재 화에 내용 이어쓰기 (같은 화 안에서 분량 늘리기)
   async function continueNovel() {
     setContinuing(true);
     const currentText = isEditing ? editedNovel : novel;
@@ -343,6 +347,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     finally { setContinuing(false); }
   }
 
+  // 다음 화 새로 생성 (창작 화면에서)
   async function generateNextEpisode() {
     const currentText = isEditing ? editedNovel : novel;
     const nextEp = currentEpisode + 1;
@@ -359,7 +364,24 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     finally { setLoading(false); }
   }
 
-  function continueFromLibrary(n: Novel) {
+  // 서재에서 "다음 화 쓰기" — 이미 있으면 이동, 없으면 새로 생성 모드
+  async function continueFromLibrary(n: Novel) {
+    if (n.series_id) {
+      const nextEpNum = (n.episode_number || 1) + 1;
+      const { data: nextEp } = await supabase
+        .from("novels")
+        .select("*")
+        .eq("series_id", n.series_id)
+        .eq("episode_number", nextEpNum)
+        .maybeSingle();
+
+      if (nextEp) {
+        // 이미 존재하는 화면 → 그냥 이동
+        openNovel(nextEp, true);
+        return;
+      }
+    }
+    // 없으면 창작 화면에서 새로 생성
     setNovel(n.content); setEditedNovel(n.content);
     setCurrentSeriesId(n.series_id || null);
     setCurrentEpisode((n.episode_number || 1) + 1);
@@ -389,6 +411,31 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     navigator.clipboard.writeText(isEditing ? editedNovel : novel).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
 
+  // 에피소드 토글 버튼 컴포넌트
+  const PublicToggle = ({ ep, stopProp = true }: { ep: Novel; stopProp?: boolean }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{ fontSize: 11, color: ep.is_public ? "#7c3aed" : "#5a4a6a" }}>
+        {ep.is_public ? "공개" : "비공개"}
+      </span>
+      <label
+        style={{ position: "relative", width: 32, height: 18, cursor: "pointer", flexShrink: 0 }}
+        onClick={(e) => { if (stopProp) { e.stopPropagation(); e.preventDefault(); } toggleEpisodePublic(e, ep.id, ep.is_public); }}
+      >
+        <span style={{
+          display: "block", width: 32, height: 18,
+          background: ep.is_public ? "#7c3aed" : "#2d2040",
+          borderRadius: 18, transition: "0.3s", position: "relative"
+        }}>
+          <span style={{
+            position: "absolute", height: 12, width: 12,
+            left: ep.is_public ? 17 : 3, top: 3,
+            background: "white", borderRadius: "50%", transition: "0.3s"
+          }} />
+        </span>
+      </label>
+    </div>
+  );
+
   const NovelCard = ({ n, showActions = false }: { n: Novel; showActions?: boolean }) => {
     const episodes = n._episodes || [];
     const displayTitle = n.series_title && n.series_title !== n.title ? n.series_title : n.title;
@@ -407,11 +454,8 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
           </div>
           {showActions && (
             <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-              <label style={{ position: "relative", width: 32, height: 18, cursor: "pointer" }} onClick={(e) => togglePublic(e, n.id, n.is_public)}>
-                <span style={{ display: "block", width: 32, height: 18, background: n.is_public ? "#7c3aed" : "#2d2040", borderRadius: 18, transition: "0.3s", position: "relative" }}>
-                  <span style={{ position: "absolute", height: 12, width: 12, left: n.is_public ? 17 : 3, top: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
-                </span>
-              </label>
+              {/* 단편(시리즈 아닌 경우)만 카드에서 토글 */}
+              {episodes.length === 0 && <PublicToggle ep={n} />}
               <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
                 onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>삭제</button>
             </div>
@@ -420,17 +464,55 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.7, maxHeight: 60, overflow: "hidden", WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent)", marginBottom: 10 }}>
           {n.content.split("\n").filter((l: string) => l.trim()).slice(1, 4).join(" ")}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a" }} onClick={(e) => e.stopPropagation()}>
-          <span>👁 {n.views || 0}</span>
-          <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: n.is_liked ? "#f472b6" : "#5a4a6a", display: "flex", alignItems: "center", gap: 3, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
-            onClick={() => toggleLike(n.id, !!n.is_liked)}>
-            {n.is_liked ? "❤️" : "🤍"} {n.like_count || 0}
-          </button>
-          <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
-        </div>
+
+        {/* 시리즈일 때 화별 목록 + 공개 토글 */}
+        {showActions && episodes.length > 0 && (
+          <div style={{ borderTop: "1px solid #2d2040", marginTop: 10, paddingTop: 10 }} onClick={(e) => e.stopPropagation()}>
+            {episodes.map((ep) => (
+              <div key={ep.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 4px", borderRadius: 8, transition: "background 0.15s" }}
+                onMouseOver={(e) => (e.currentTarget.style.background = "#1a1228")}
+                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}>
+                <span
+                  style={{ fontSize: 13, color: "#c4b8d8", cursor: "pointer", flex: 1 }}
+                  onClick={() => openNovel(ep, true)}
+                >
+                  {ep.episode_number}화. {ep.title}
+                </span>
+                <PublicToggle ep={ep} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!showActions && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a" }} onClick={(e) => e.stopPropagation()}>
+            <span>👁 {n.views || 0}</span>
+            <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: n.is_liked ? "#f472b6" : "#5a4a6a", display: "flex", alignItems: "center", gap: 3, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
+              onClick={() => toggleLike(n.id, !!n.is_liked)}>
+              {n.is_liked ? "❤️" : "🤍"} {n.like_count || 0}
+            </button>
+            <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
+          </div>
+        )}
+        {showActions && episodes.length === 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a", marginTop: 6 }}>
+            <span>👁 {n.views || 0}</span>
+            <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
+          </div>
+        )}
+        {showActions && episodes.length > 0 && (
+          <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 11, color: "#5a4a6a", marginTop: 4 }}>
+            <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
+              onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>시리즈 삭제</button>
+          </div>
+        )}
       </div>
     );
   };
+
+  // 읽기 화면에서 현재 화가 마지막 화인지 판단
+  const isLastEpisode = readingSeries.length === 0 ||
+    (readingNovel?.episode_number ?? 0) >= Math.max(...readingSeries.map(e => e.episode_number || 0));
 
   return (
     <>
@@ -574,7 +656,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         {/* 소설 읽기 */}
         {readingNovel && (
           <div style={{ position: "fixed", inset: 0, background: "#0d0a14", zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-            <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 120 }}>
+            <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 160 }}>
               <div style={{ position: "sticky", top: 0, background: "#0d0a14cc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #2d2040", zIndex: 10 }}>
                 <button style={{ background: "none", border: "none", color: "#9a8aaa", fontSize: 14, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }} onClick={() => setReadingNovel(null)}>← 뒤로</button>
                 <div style={{ display: "flex", gap: 12, fontSize: 12, color: "#5a4a6a" }}>
@@ -608,12 +690,36 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                 {readingNovel.is_liked ? "❤️ 좋아요 취소" : "🤍 좋아요"} {readingNovel.like_count || 0}
               </button>
               {isMyNovel && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
-                    onClick={() => editFromLibrary(readingNovel)}>✏️ 편집</button>
-                  <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #7c3aed", borderRadius: 12, color: "#c4b8ff", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
-                    onClick={() => continueFromLibrary(readingNovel)}>📖 다음 화 쓰기</button>
-                </div>
+                <>
+                  {/* 현재 화 공개 토글 */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, color: "#c4b8d8" }}>
+                      {readingNovel.episode_number ? `${readingNovel.episode_number}화 ` : ""}공개 설정
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, color: readingNovel.is_public ? "#7c3aed" : "#5a4a6a" }}>
+                        {readingNovel.is_public ? "🌍 공개 중" : "🔒 비공개"}
+                      </span>
+                      <label style={{ position: "relative", width: 44, height: 24, cursor: "pointer" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleEpisodePublic(e, readingNovel.id, readingNovel.is_public);
+                        }}>
+                        <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: readingNovel.is_public ? "#7c3aed" : "#2d2040", borderRadius: 24, transition: "0.3s" }}>
+                          <span style={{ position: "absolute", height: 18, width: 18, left: readingNovel.is_public ? 23 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: isLastEpisode ? "1fr 1fr" : "1fr", gap: 8 }}>
+                    <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
+                      onClick={() => editFromLibrary(readingNovel)}>✏️ 편집</button>
+                    {isLastEpisode && (
+                      <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #7c3aed", borderRadius: 12, color: "#c4b8ff", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
+                        onClick={() => continueFromLibrary(readingNovel)}>📖 다음 화 쓰기</button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -784,8 +890,9 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                             <span style={{ position: "absolute", height: 18, width: 18, left: isPublic ? 23 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
                           </span>
                         </label>
-                        <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 공개" : "🔒 비공개"}</span>
+                        <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 이 화 공개" : "🔒 이 화 비공개"}</span>
                       </div>
+                      {/* 버튼: 이어쓰기 + 저장 */}
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                         <button className="btn btn-outline" onClick={continueNovel} disabled={continuing} style={{ fontSize: 13 }}>
                           {continuing ? <><span className="spinner" /></> : "✍️ 이어쓰기"}
@@ -794,8 +901,8 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                           {saving ? <><span className="spinner" /></> : saveMsg || `💾 ${currentEpisode}화 저장`}
                         </button>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                        <button className="btn btn-outline" onClick={generateNextEpisode} disabled={loading} style={{ fontSize: 13, borderColor: "#7c3aed", color: "#a78bfa" }}>📖 다음 화</button>
+                      {/* txt, 복사 */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                         <button className="btn btn-outline" onClick={saveAsText} style={{ fontSize: 13 }}>📄 txt</button>
                         <button className="btn btn-outline" onClick={copyToClipboard} style={{ fontSize: 13, borderColor: copied ? "#86efac" : "#2d2040", color: copied ? "#86efac" : "#9a8aaa" }}>
                           {copied ? "✅" : "📋 복사"}
