@@ -791,7 +791,10 @@ ${prevContent}`;
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "#5a4a6a", marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
             <span>👁 {n.views || 0}</span>
-<span style={{ color: "#5a4a6a", fontSize: 12 }}>🤍 {n.like_count || 0}</span>
+<button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#5a4a6a", display: "flex", alignItems: "center", gap: 2, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
+              onClick={(e) => { e.stopPropagation(); handleClick(); }}>
+              🤍 {n.like_count || 0}
+            </button>
             <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
           </div>
         </div>
@@ -872,8 +875,8 @@ ${prevContent}`;
 
         {/* 로그인 모달 */}
         {showAuth && (
-          <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowAuth(false)}>
-            <div style={{ background: "#1a1228", borderRadius: "20px 20px 0 0", padding: "28px 20px 40px", width: "100%", maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px" }} onClick={() => setShowAuth(false)}>
+            <div style={{ background: "#1a1228", borderRadius: "20px", padding: "28px 20px 32px", width: "100%", maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ width: 36, height: 4, background: "#2d2040", borderRadius: 2, margin: "0 auto 24px" }} />
               <h2 style={{ marginBottom: 20, fontSize: 18, fontWeight: 600, textAlign: "center" }}>{authMode === "login" ? "로그인" : "회원가입"}</h2>
 
