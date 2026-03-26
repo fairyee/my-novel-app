@@ -134,14 +134,19 @@ export default function Home() {
   }, [view, user, exploreTab]);
 
   // 자동저장: 타이핑 멈추면 2초 후 저장 (디바운스)
+  // isEditing 여부와 관계없이 항상 최신 텍스트를 저장
   useEffect(() => {
-    if (!user || !novel || step !== "result" || loading) return;
+    // 편집 중일 땐 editedNovel, 아닐 땐 novel 기준
     const currentText = isEditing ? editedNovel : novel;
-    if (!currentText.trim()) return;
+    if (!user || !currentText.trim() || step !== "result" || loading) return;
     const timer = setTimeout(async () => {
       const novelTitle = title || currentText.split("\n")[0] || "제목 없음";
-      const sid = currentSeriesId || crypto.randomUUID();
-      if (!currentSeriesId) setCurrentSeriesId(sid);
+      // currentSeriesId는 클로저로 캡처되므로 로컬 변수로 처리
+      let sid = currentSeriesId;
+      if (!sid) {
+        sid = crypto.randomUUID();
+        setCurrentSeriesId(sid);
+      }
       const { data: existing } = await supabase.from("novels").select("id").eq("series_id", sid).eq("episode_number", currentEpisode).maybeSingle();
       if (existing) {
         await supabase.from("novels").update({ content: currentText, title: novelTitle, is_public: isPublic }).eq("id", existing.id);
@@ -154,13 +159,12 @@ export default function Home() {
           series_title: seriesTitle || novelTitle,
           created_at: new Date().toISOString(),
         });
-        setCurrentSeriesId(sid);
       }
       setAutoSaveMsg("자동저장됨 ✓");
       setTimeout(() => setAutoSaveMsg(""), 2000);
     }, 2000);
     return () => clearTimeout(timer);
-  }, [novel, editedNovel, isEditing, user, step, loading]);
+  }, [novel, editedNovel, isEditing, user, step, loading, currentSeriesId, currentEpisode]);
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
@@ -1051,7 +1055,15 @@ ${prevContent}`;
                     <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13 }} onClick={resetForm}>← 처음으로</button>
                     <div style={{ fontSize: 13, color: "#7c3aed", fontWeight: 600 }}>{currentEpisode}화</div>
                     <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13, borderColor: isEditing ? accentColor : "#2d2040", color: isEditing ? accentColor : "#9a8aaa" }}
-                      onClick={() => { setIsEditing(!isEditing); if (!isEditing) setEditedNovel(novel); }} disabled={loading}>
+                      onClick={() => {
+                          if (isEditing) {
+                            // 완료 누르면 novel도 editedNovel로 동기화
+                            setNovel(editedNovel);
+                          } else {
+                            setEditedNovel(novel);
+                          }
+                          setIsEditing(!isEditing);
+                        }} disabled={loading}>
                       {isEditing ? "✅ 완료" : "✏️ 편집"}
                     </button>
                   </div>
