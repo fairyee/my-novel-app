@@ -314,22 +314,17 @@ export default function Home() {
     const isLiked = !!(sd as any)._isLiked;
 
     // 즉시 UI 업데이트
-    const newIsLiked = !isLiked;
-    const newCount = Math.max(0, ((sd as any)._likeCount || 0) + (isLiked ? -1 : 1));
-    setSeriesDetail({ ...sd, _isLiked: newIsLiked, _likeCount: newCount } as any);
+    setSeriesDetail(prev => prev ? { ...prev, _isLiked: !isLiked, _likeCount: Math.max(0, ((prev as any)._likeCount || 0) + (isLiked ? -1 : 1)) } as any : prev);
 
     // DB 업데이트
     if (isLiked) {
       await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", firstEp.id);
     } else {
-      const { data: rows } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstEp.id);
-      if (!rows || rows.length === 0) {
-        await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id });
-      }
+      await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id }).select();
     }
 
-    // fetchLikedNovels 갱신
-    if (view === "library") fetchLikedNovels();
+    // 좋아한 작품 갱신
+    fetchLikedNovels();
   }
 
   async function openNovel(n: Novel, mine = false) {
