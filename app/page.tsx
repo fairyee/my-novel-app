@@ -980,11 +980,7 @@ ${prevContent}`;
                         onMouseOver={(e) => (e.currentTarget.style.background = "#1a1228")}
                         onMouseOut={(e) => (e.currentTarget.style.background = "#160f22")}
                         onClick={() => openNovel(ep, !!(seriesDetail as any)._isMine)}>
-                        {ep.cover_image ? (
-                          <img src={ep.cover_image} alt="" style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 6, flexShrink: 0, background: "#0d0a14" }} />
-                        ) : (
-                          <div style={{ width: 44, height: 44, borderRadius: 6, background: "#1a1228", border: "1px solid #2d2040", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📖</div>
-                        )}
+                        <div style={{ width: 32, height: 32, borderRadius: 6, background: "#2d1f4e", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#a78bfa", fontWeight: 600 }}>{ep.episode_number}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e0f0", marginBottom: 2 }}>{ep.episode_number}화. {ep.title}</div>
                           <div style={{ fontSize: 11, color: "#5a4a6a" }}>{new Date(ep.created_at).toLocaleDateString("ko-KR")}</div>
@@ -1031,32 +1027,8 @@ ${prevContent}`;
                   <div style={{ borderRadius: 12, overflow: "hidden", marginBottom: 20, position: "relative" }}>
                     <img src={readingNovel.cover_image} alt="cover" style={{ width: "100%", height: 200, objectFit: "cover" }} />
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 50%, #0d0a14)" }} />
-                    {isMyNovel && (
-                      <label style={{ position: "absolute", bottom: 10, right: 10, background: "#0d0a14cc", border: "1px solid #4a3570", borderRadius: 8, padding: "5px 10px", color: "#c4b8d8", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}>
-                        <input type="file" accept="image/*" style={{ display: "none" }}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            const sid = readingNovel.series_id || readingNovel.id;
-                            if (!file || !sid) return;
-                            const url = await uploadCover(file, sid);
-                            if (url) setReadingNovel({ ...readingNovel, cover_image: url });
-                          }} />
-                        🖼️ 변경
-                      </label>
-                    )}
+
                   </div>
-                ) : isMyNovel ? (
-                  <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: 100, background: "#160f22", borderRadius: 12, marginBottom: 20, border: "1.5px dashed #2d2040", cursor: "pointer", color: "#5a4a6a", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }}>
-                    <input type="file" accept="image/*" style={{ display: "none" }}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        const sid = readingNovel.series_id || readingNovel.id;
-                        if (!file || !sid) return;
-                        const url = await uploadCover(file, sid);
-                        if (url) setReadingNovel({ ...readingNovel, cover_image: url });
-                      }} />
-                    {coverUploading ? "업로드 중..." : "🖼️ 커버 이미지 추가"}
-                  </label>
                 ) : null}
                 {readingNovel.series_title && <div style={{ fontSize: 12, color: "#7c3aed", marginBottom: 6 }}>📚 {readingNovel.series_title}</div>}
                 <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>
@@ -1321,7 +1293,7 @@ ${prevContent}`;
                     <>
                       {/* 커버 이미지 업로드 */}
                       <div style={{ margin: "14px 0", padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
-                        <div style={{ fontSize: 12, color: "#7a6a8a", marginBottom: 8 }}>🖼️ 커버 이미지</div>
+                        <div style={{ fontSize: 12, color: "#7a6a8a", marginBottom: 8 }}>🖼️ 시리즈 커버 이미지</div>
                         {coverImage ? (
                           <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
                             <img src={coverImage} alt="cover" style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 8 }} />
