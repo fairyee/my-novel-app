@@ -56,6 +56,7 @@ interface Novel {
   _episodes?: Novel[];
 }
 interface Profile { id: string; nickname: string; }
+interface Comment { id: string; novel_id: string; user_id: string; nickname: string; content: string; created_at: string; }
 
 export default function Home() {
   const supabase = createClient();
@@ -109,6 +110,10 @@ export default function Home() {
   const [continuing, setContinuing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [autoSaveMsg, setAutoSaveMsg] = useState("");
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentLoading, setCommentLoading] = useState(false);
 
   const selectedGenre = GENRES.find((g) => g.id === genre);
   const accentColor = selectedGenre?.color || "#a78bfa";
@@ -127,6 +132,35 @@ export default function Home() {
     if (view === "library" && user) { fetchMyNovels(); fetchLikedNovels(); }
     if (view === "explore") fetchPublicNovels();
   }, [view, user, exploreTab]);
+
+  // 자동저장: 타이핑 멈추면 2초 후 저장 (디바운스)
+  useEffect(() => {
+    if (!user || !novel || step !== "result" || loading) return;
+    const currentText = isEditing ? editedNovel : novel;
+    if (!currentText.trim()) return;
+    const timer = setTimeout(async () => {
+      const novelTitle = title || currentText.split("\n")[0] || "제목 없음";
+      const sid = currentSeriesId || crypto.randomUUID();
+      if (!currentSeriesId) setCurrentSeriesId(sid);
+      const { data: existing } = await supabase.from("novels").select("id").eq("series_id", sid).eq("episode_number", currentEpisode).maybeSingle();
+      if (existing) {
+        await supabase.from("novels").update({ content: currentText, title: novelTitle, is_public: isPublic }).eq("id", existing.id);
+      } else {
+        await supabase.from("novels").insert({
+          user_id: user.id, title: novelTitle, content: currentText,
+          genre: selectedGenre?.label || "", tags: selectedTags.join(", "),
+          is_public: isPublic, views: 0, series_id: sid,
+          episode_number: currentEpisode,
+          series_title: seriesTitle || novelTitle,
+          created_at: new Date().toISOString(),
+        });
+        setCurrentSeriesId(sid);
+      }
+      setAutoSaveMsg("자동저장됨 ✓");
+      setTimeout(() => setAutoSaveMsg(""), 2000);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [novel, editedNovel, isEditing, user, step, loading]);
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
@@ -243,13 +277,39 @@ export default function Home() {
     await supabase.rpc("increment_views", { novel_id: n.id });
     setReadingNovel({ ...n, views: (n.views || 0) + 1 });
     setIsMyNovel(mine);
+    setComments([]); setCommentText("");
+    fetchComments(n.id);
     if (n.series_id) {
       let seriesQuery = supabase.from("novels").select("*").eq("series_id", n.series_id).order("episode_number", { ascending: true });
-      // 내 소설이면 전체 화, 아니면 공개된 화만
       if (!mine) seriesQuery = seriesQuery.eq("is_public", true);
       const { data } = await seriesQuery;
       setReadingSeries(data || []);
     } else setReadingSeries([]);
+  }
+
+  async function fetchComments(novelId: string) {
+    const { data } = await supabase.from("comments").select("*").eq("novel_id", novelId).order("created_at", { ascending: true });
+    setComments(data || []);
+  }
+
+  async function submitComment() {
+    if (!user) { setShowAuth(true); return; }
+    if (!commentText.trim() || !readingNovel) return;
+    setCommentLoading(true);
+    await supabase.from("comments").insert({
+      novel_id: readingNovel.id,
+      user_id: user.id,
+      nickname: profile?.nickname || user.email?.split("@")[0] || "익명",
+      content: commentText.trim(),
+    });
+    setCommentText("");
+    await fetchComments(readingNovel.id);
+    setCommentLoading(false);
+  }
+
+  async function deleteComment(commentId: string) {
+    await supabase.from("comments").delete().eq("id", commentId);
+    if (readingNovel) fetchComments(readingNovel.id);
   }
 
   async function handleAuth() {
@@ -397,9 +457,28 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     finally { setContinuing(false); }
   }
 
-  // 다음 화 새로 생성 (창작 화면에서)
+  // 다음 화 새로 생성 (창작 화면에서) - 현재 화 먼저 자동저장
   async function generateNextEpisode() {
     const currentText = isEditing ? editedNovel : novel;
+    // 현재 화 먼저 저장
+    if (user && currentText.trim()) {
+      const novelTitle = title || currentText.split("\n")[0] || "제목 없음";
+      const sid = currentSeriesId || crypto.randomUUID();
+      if (!currentSeriesId) setCurrentSeriesId(sid);
+      const { data: existing } = await supabase.from("novels").select("id").eq("series_id", sid).eq("episode_number", currentEpisode).maybeSingle();
+      if (existing) {
+        await supabase.from("novels").update({ content: currentText, title: novelTitle, is_public: isPublic }).eq("id", existing.id);
+      } else {
+        await supabase.from("novels").insert({
+          user_id: user.id, title: novelTitle, content: currentText,
+          genre: selectedGenre?.label || "", tags: selectedTags.join(", "),
+          is_public: isPublic, views: 0, series_id: sid,
+          episode_number: currentEpisode,
+          series_title: seriesTitle || novelTitle,
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
     const nextEp = currentEpisode + 1;
     setCurrentEpisode(nextEp);
     setNovel(""); setEditedNovel(""); setIsEditing(false); setSaveMsg("");
@@ -738,6 +817,52 @@ ${prevContent}`;
                 </h1>
                 <div style={{ fontSize: 12, color: "#5a4a6a", marginBottom: 28 }}>{readingNovel.genre}{readingNovel.tags && ` · ${readingNovel.tags}`}</div>
                 <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{readingNovel.content}</div>
+
+                {/* 댓글 섹션 */}
+                <div style={{ marginTop: 48, borderTop: "1px solid #2d2040", paddingTop: 28 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#c4b8d8", marginBottom: 20 }}>
+                    💬 댓글 {comments.length > 0 ? `${comments.length}개` : ""}
+                  </div>
+
+                  {/* 댓글 입력 */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+                    <textarea
+                      style={{ flex: 1, background: "#1a1228", border: "1.5px solid #2d2040", borderRadius: 10, padding: "10px 12px", color: "#e8e0f0", fontFamily: "'Noto Serif KR', serif", fontSize: 14, outline: "none", resize: "none", minHeight: 72 }}
+                      placeholder={user ? "댓글을 남겨보세요..." : "로그인 후 댓글을 남길 수 있어요"}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onFocus={() => { if (!user) setShowAuth(true); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                    />
+                    <button
+                      style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)", border: "none", borderRadius: 10, padding: "0 16px", color: "#fff", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, flexShrink: 0, opacity: commentText.trim() ? 1 : 0.4 }}
+                      onClick={submitComment}
+                      disabled={commentLoading || !commentText.trim()}>
+                      {commentLoading ? "..." : "등록"}
+                    </button>
+                  </div>
+
+                  {/* 댓글 목록 */}
+                  {comments.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "24px 0", color: "#5a4a6a", fontSize: 13 }}>첫 댓글을 남겨보세요 🌙</div>
+                  ) : (
+                    comments.map((c) => (
+                      <div key={c.id} style={{ marginBottom: 16, padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#a78bfa" }}>{c.nickname}</span>
+                            <span style={{ fontSize: 11, color: "#5a4a6a" }}>{new Date(c.created_at).toLocaleDateString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                          </div>
+                          {user?.id === c.user_id && (
+                            <button style={{ background: "none", border: "none", color: "#5a4a6a", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
+                              onClick={() => { if (confirm("댓글을 삭제할까요?")) deleteComment(c.id); }}>삭제</button>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 14, color: "#c4b8d8", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{c.content}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
             <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 640, padding: "10px 16px 20px", background: "#0d0a14ee", borderTop: "1px solid #2d2040" }}>
@@ -948,6 +1073,10 @@ ${prevContent}`;
                         </label>
                         <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 이 화 공개" : "🔒 이 화 비공개"}</span>
                       </div>
+                      {/* 자동저장 표시 */}
+                      {autoSaveMsg && (
+                        <div style={{ textAlign: "right", fontSize: 11, color: "#6ee7b7", marginBottom: 6 }}>{autoSaveMsg}</div>
+                      )}
                       {/* 버튼: 다음 화 쓰기 + 저장 */}
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                         <button className="btn btn-outline" onClick={generateNextEpisode} disabled={loading} style={{ fontSize: 13, borderColor: "#7c3aed", color: "#a78bfa" }}>
