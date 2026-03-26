@@ -339,6 +339,8 @@ export default function Home() {
     });
   }
 
+  async function handleAuth() {
+    setAuthLoading(true); setAuthError("");
     const { error } = authMode === "login"
       ? await supabase.auth.signInWithPassword({ email, password })
       : await supabase.auth.signUp({ email, password });
