@@ -210,7 +210,22 @@ export default function Home() {
     if (!likeData || likeData.length === 0) { setLikedNovels([]); return; }
     const ids = likeData.map((l: any) => l.novel_id);
     const { data } = await supabase.from("novels").select("*").in("id", ids).order("created_at", { ascending: false });
-    setLikedNovels(data || []);
+    if (!data) { setLikedNovels([]); return; }
+    // 시리즈 그룹핑
+    const seriesMap: Record<string, Novel[]> = {};
+    const noSeries: Novel[] = [];
+    data.forEach((n: Novel) => {
+      if (n.series_id) {
+        if (!seriesMap[n.series_id]) seriesMap[n.series_id] = [];
+        seriesMap[n.series_id].push(n);
+      } else noSeries.push(n);
+    });
+    const grouped: Novel[] = [];
+    Object.values(seriesMap).forEach((eps) => {
+      const sorted = [...eps].sort((a, b) => (a.episode_number || 0) - (b.episode_number || 0));
+      grouped.push({ ...sorted[0], _episodes: sorted });
+    });
+    setLikedNovels([...grouped, ...noSeries]);
   }
 
   async function fetchPublicNovels() {
@@ -356,7 +371,10 @@ export default function Home() {
   async function handleKakaoLogin() {
     await supabase.auth.signInWithOAuth({
       provider: "kakao",
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+        scopes: "profile_nickname profile_image",
+      },
     });
   }
 
@@ -634,7 +652,7 @@ ${prevContent}`;
     setCurrentSeriesId(n.series_id || null);
     setCurrentEpisode(n.episode_number || 1);
     setSeriesTitle(n.series_title || "");
-    setStep("result"); setView("create"); setReadingNovel(null);
+    setStep("result"); setView("create"); setReadingNovel(null); setSeriesDetail(null);
   }
 
   function saveAsText() {
@@ -687,12 +705,9 @@ ${prevContent}`;
     const handleClick = async () => {
       const loadLikeInfo = async (epList: Novel[]) => {
         const firstId = (epList[0] || n).id;
-        console.log("loadLikeInfo firstId:", firstId, "user:", user?.id);
-        const { data: allLikes, error } = await supabase.from("likes").select("user_id").eq("novel_id", firstId);
-        console.log("allLikes:", allLikes, "error:", error);
+        const { data: allLikes } = await supabase.from("likes").select("user_id").eq("novel_id", firstId);
         const totalCount = allLikes?.length || 0;
         const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
-        console.log("totalCount:", totalCount, "isLiked:", isLiked);
         setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
       };
 
@@ -1163,7 +1178,7 @@ ${prevContent}`;
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: isLastEpisode ? "1fr 1fr" : "1fr", gap: 8 }}>
                     <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
-                      onClick={() => editFromLibrary(readingNovel)}>✏️ 편집</button>
+                      onClick={() => { editFromLibrary(readingNovel); setSeriesDetail(null); }}>✏️ 편집</button>
                     {isLastEpisode && (
                       <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #7c3aed", borderRadius: 12, color: "#c4b8ff", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
                         onClick={() => continueFromLibrary(readingNovel)}>📖 다음 화 쓰기</button>
