@@ -1099,10 +1099,27 @@ ${prevContent}`;
               </div>
             </div>
             <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 640, padding: "10px 16px 20px", background: "#0d0a14ee", borderTop: "1px solid #2d2040" }}>
-              <button style={{ width: "100%", padding: "11px", background: readingNovel.is_liked ? "#2d1f4e" : "transparent", border: `1.5px solid ${readingNovel.is_liked ? "#7c3aed" : "#2d2040"}`, borderRadius: 12, color: readingNovel.is_liked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, marginBottom: 8 }}
-                onClick={() => { toggleLike(readingNovel.id, !!readingNovel.is_liked); setReadingNovel({ ...readingNovel, is_liked: !readingNovel.is_liked, like_count: (readingNovel.like_count || 0) + (readingNovel.is_liked ? -1 : 1) }); }}>
-                {readingNovel.is_liked ? "❤️ 좋아요 취소" : "🤍 좋아요"} {readingNovel.like_count || 0}
-              </button>
+              {(() => {
+                // 시리즈면 1화 기준으로 좋아요, 단편이면 현재 화
+                const likeTarget = readingSeries.length > 0 ? readingSeries[0] : readingNovel;
+                const isLiked = likeTarget.is_liked;
+                const likeCount = readingSeries.length > 0
+                  ? readingSeries.reduce((sum, ep) => sum + (ep.like_count || 0), 0)
+                  : readingNovel.like_count || 0;
+                return (
+                  <button style={{ width: "100%", padding: "11px", background: isLiked ? "#2d1f4e" : "transparent", border: `1.5px solid ${isLiked ? "#7c3aed" : "#2d2040"}`, borderRadius: 12, color: isLiked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, marginBottom: 8 }}
+                    onClick={() => {
+                      toggleLike(likeTarget.id, !!isLiked);
+                      // 시리즈 전체 is_liked 업데이트
+                      if (readingSeries.length > 0) {
+                        setReadingSeries(prev => prev.map((ep, i) => i === 0 ? { ...ep, is_liked: !isLiked, like_count: (ep.like_count || 0) + (isLiked ? -1 : 1) } : ep));
+                      }
+                      setReadingNovel({ ...readingNovel, is_liked: !isLiked, like_count: (readingNovel.like_count || 0) + (isLiked ? -1 : 1) });
+                    }}>
+                    {isLiked ? "❤️ 좋아요 취소" : "🤍 좋아요"} {likeCount}
+                  </button>
+                );
+              })()}
               {isMyNovel && (
                 <>
                   {/* 현재 화 공개 토글 */}
