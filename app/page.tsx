@@ -85,7 +85,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [readingNovel, setReadingNovel] = useState<Novel|null>(null);
   const [seriesDetail, setSeriesDetail] = useState<Novel|null>(null);
-  const [showToc, setShowToc] = useState(false);
+  const [showToc, setShowToc] = useState(true);
   const [readingSeries, setReadingSeries] = useState<Novel[]>([]);
   const [isMyNovel, setIsMyNovel] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<Novel|null>(null);
@@ -644,11 +644,11 @@ ${prevContent}`;
       if (showActions) {
         // 서재: 무조건 작품소개 화면
         setSeriesDetail({ ...n, _episodes: episodes.length > 0 ? episodes : [n], _isMine: true } as any);
-        setShowToc(false);
+        setShowToc(true);
       } else if (episodes.length > 0) {
         // 둘러보기 시리즈
         setSeriesDetail({ ...n, _episodes: episodes, _isMine: false } as any);
-        setShowToc(false);
+        setShowToc(true);
       } else {
         openNovel(n, false);
       }
