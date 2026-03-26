@@ -168,21 +168,68 @@ export default function Home() {
   }
 
   async function fetchPublicNovels() {
+    // 공개된 화 전체 가져오기
     let query = supabase.from("novels").select("*").eq("is_public", true);
     if (searchQuery.trim()) query = query.or(`title.ilike.%${searchQuery}%,tags.ilike.%${searchQuery}%,genre.ilike.%${searchQuery}%`);
     query = exploreTab === "popular" ? query.order("views", { ascending: false }) : query.order("created_at", { ascending: false });
-    const { data } = await query.limit(50);
+    const { data } = await query.limit(100);
     if (!data) { setPublicNovels([]); return; }
+
+    // 좋아요 카운트
     const { data: likeCounts } = await supabase.from("likes").select("novel_id");
     const countMap: Record<string, number> = {};
     (likeCounts || []).forEach((l: any) => { countMap[l.novel_id] = (countMap[l.novel_id] || 0) + 1; });
+
+    // 내가 좋아요한 것
+    let likedIds = new Set<string>();
     if (user) {
       const { data: likeData } = await supabase.from("likes").select("novel_id").eq("user_id", user.id);
-      const likedIds = new Set((likeData || []).map((l: any) => l.novel_id));
-      setPublicNovels(data.map((n: Novel) => ({ ...n, is_liked: likedIds.has(n.id), like_count: countMap[n.id] || 0 })));
-    } else {
-      setPublicNovels(data.map((n: Novel) => ({ ...n, like_count: countMap[n.id] || 0 })));
+      likedIds = new Set((likeData || []).map((l: any) => l.novel_id));
     }
+
+    const withMeta = data.map((n: Novel) => ({
+      ...n,
+      is_liked: likedIds.has(n.id),
+      like_count: countMap[n.id] || 0,
+    }));
+
+    // 시리즈 그룹핑: series_id 기준으로 묶기
+    // 시리즈가 없는 단편은 그대로, 시리즈는 카드 1개로
+    const seriesMap: Record<string, Novel[]> = {};
+    const noSeries: Novel[] = [];
+
+    withMeta.forEach((n: Novel) => {
+      if (n.series_id) {
+        if (!seriesMap[n.series_id]) seriesMap[n.series_id] = [];
+        seriesMap[n.series_id].push(n);
+      } else {
+        noSeries.push(n);
+      }
+    });
+
+    // 시리즈는 1화(가장 낮은 episode_number) 기준으로 대표 카드 생성
+    // _episodes에는 공개된 화만 담음
+    const seriesCards: Novel[] = Object.values(seriesMap).map((eps) => {
+      const sorted = [...eps].sort((a, b) => (a.episode_number || 0) - (b.episode_number || 0));
+      const totalLikes = sorted.reduce((sum, ep) => sum + (ep.like_count || 0), 0);
+      const isLiked = sorted.some(ep => ep.is_liked);
+      return {
+        ...sorted[0],
+        like_count: totalLikes,
+        is_liked: isLiked,
+        _episodes: sorted,
+      };
+    });
+
+    // 정렬: 인기순이면 views 기준, 최신순이면 created_at 기준
+    const allCards = [...seriesCards, ...noSeries];
+    if (exploreTab === "popular") {
+      allCards.sort((a, b) => (b.views || 0) - (a.views || 0));
+    } else {
+      allCards.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+
+    setPublicNovels(allCards);
   }
 
   async function toggleLike(novelId: string, isLiked: boolean) {
@@ -197,7 +244,10 @@ export default function Home() {
     setReadingNovel({ ...n, views: (n.views || 0) + 1 });
     setIsMyNovel(mine);
     if (n.series_id) {
-      const { data } = await supabase.from("novels").select("*").eq("series_id", n.series_id).order("episode_number", { ascending: true });
+      let seriesQuery = supabase.from("novels").select("*").eq("series_id", n.series_id).order("episode_number", { ascending: true });
+      // 내 소설이면 전체 화, 아니면 공개된 화만
+      if (!mine) seriesQuery = seriesQuery.eq("is_public", true);
+      const { data } = await seriesQuery;
       setReadingSeries(data || []);
     } else setReadingSeries([]);
   }
@@ -364,7 +414,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
     finally { setLoading(false); }
   }
 
-  // 서재에서 "다음 화 쓰기" — 이미 있으면 이동, 없으면 새로 생성 모드
+  // 서재에서 "다음 화 쓰기" — 이미 있으면 이동, 없으면 AI로 새로 생성
   async function continueFromLibrary(n: Novel) {
     if (n.series_id) {
       const nextEpNum = (n.episode_number || 1) + 1;
@@ -381,12 +431,26 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
         return;
       }
     }
-    // 없으면 창작 화면에서 새로 생성
-    setNovel(n.content); setEditedNovel(n.content);
+    // 없으면 이전 화 내용 기반으로 AI가 다음 화 생성
+    const prevContent = n.content;
+    const nextEp = (n.episode_number || 1) + 1;
     setCurrentSeriesId(n.series_id || null);
-    setCurrentEpisode((n.episode_number || 1) + 1);
+    setCurrentEpisode(nextEp);
     setSeriesTitle(n.series_title || "");
+    setNovel(""); setEditedNovel(""); setIsEditing(false); setSaveMsg("");
     setStep("result"); setView("create"); setReadingNovel(null);
+    setLoading(true);
+    const prompt = `당신은 한국 소설 작가입니다. 아래는 ${n.episode_number || 1}화 내용입니다. 이 내용과 자연스럽게 이어지는 ${nextEp}화를 써주세요. 1500자 이상, 반드시 완성된 문장으로 끝낼 것. 이전 내용을 반복하지 말고 새로운 장면으로 시작. 마크다운 없이 순수 텍스트로.
+
+이전 화:
+${prevContent}`;
+    try {
+      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 3000 }) });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setNovel(data.text); setEditedNovel(data.text);
+    } catch (e: any) { setError("오류: " + e.message); }
+    finally { setLoading(false); }
   }
 
   function editFromLibrary(n: Novel) {
@@ -884,10 +948,10 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
                         </label>
                         <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 이 화 공개" : "🔒 이 화 비공개"}</span>
                       </div>
-                      {/* 버튼: 이어쓰기 + 저장 */}
+                      {/* 버튼: 다음 화 쓰기 + 저장 */}
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                        <button className="btn btn-outline" onClick={continueNovel} disabled={continuing} style={{ fontSize: 13 }}>
-                          {continuing ? <><span className="spinner" /></> : "✍️ 이어쓰기"}
+                        <button className="btn btn-outline" onClick={generateNextEpisode} disabled={loading} style={{ fontSize: 13, borderColor: "#7c3aed", color: "#a78bfa" }}>
+                          {loading ? <><span className="spinner" /></> : "📖 다음 화 쓰기"}
                         </button>
                         <button className="btn btn-primary" onClick={saveNovel} disabled={saving} style={{ fontSize: 13 }}>
                           {saving ? <><span className="spinner" /></> : saveMsg || `💾 ${currentEpisode}화 저장`}
