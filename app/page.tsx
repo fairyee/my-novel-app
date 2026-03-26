@@ -318,17 +318,6 @@ export default function Home() {
   }
 
   // 좋아요 정보 로드 - 독립 함수
-  async function loadLikeInfoForSeries(epList: Novel[]) {
-    const allIds = epList.map(ep => ep.id);
-    if (allIds.length === 0) return;
-    const { data: allLikes } = await supabase.from("likes").select("user_id, novel_id").in("novel_id", allIds);
-    const totalCount = allLikes?.length || 0;
-    const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
-    setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
-  }
-
-  async function toggleSeriesLike(sd: Novel) {
-    if (!user) { setShowAuth(true); return; }
     const eps = (sd as any)._episodes || [sd];
     const allIds = eps.map((ep: Novel) => ep.id);
     const isLiked = !!(sd as any)._isLiked;
