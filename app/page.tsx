@@ -307,6 +307,26 @@ export default function Home() {
     if (view === "library") { fetchMyNovels(); fetchLikedNovels(); }
   }
 
+  // 좋아요 정보 로드 - 독립 함수
+  async function loadLikeInfoForSeries(epList: Novel[]) {
+    const allIds = epList.map(ep => ep.id);
+    if (allIds.length === 0) return;
+    const { data: allLikes } = await supabase.from("likes").select("user_id, novel_id").in("novel_id", allIds);
+    const totalCount = allLikes?.length || 0;
+    const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
+    setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
+  }
+
+  // 좋아요 정보 로드 - 독립 함수
+  async function loadLikeInfoForSeries(epList: Novel[]) {
+    const allIds = epList.map(ep => ep.id);
+    if (allIds.length === 0) return;
+    const { data: allLikes } = await supabase.from("likes").select("user_id, novel_id").in("novel_id", allIds);
+    const totalCount = allLikes?.length || 0;
+    const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
+    setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
+  }
+
   async function toggleSeriesLike(sd: Novel) {
     if (!user) { setShowAuth(true); return; }
     const eps = (sd as any)._episodes || [sd];
@@ -713,24 +733,15 @@ ${prevContent}`;
     const preview = rawPreview.length > 120 ? rawPreview.slice(0, 120) + "…" : rawPreview;
 
     const handleClick = async () => {
-      const loadLikeInfo = async (epList: Novel[]) => {
-        // 모든 화의 novel_id로 좋아요 조회
-        const allIds = epList.map(ep => ep.id);
-        const { data: allLikes } = await supabase.from("likes").select("user_id, novel_id").in("novel_id", allIds);
-        const totalCount = allLikes?.length || 0;
-        const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
-        setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
-      };
-
       if (showActions) {
         const epList = episodes.length > 0 ? episodes : [n];
         setSeriesDetail({ ...n, _episodes: epList, _isMine: true, _isLiked: false, _likeCount: 0 } as any);
         setShowToc(true);
-        loadLikeInfo(epList);
+        setTimeout(() => loadLikeInfoForSeries(epList), 0);
       } else if (episodes.length > 0) {
         setSeriesDetail({ ...n, _episodes: episodes, _isMine: false, _isLiked: false, _likeCount: 0 } as any);
         setShowToc(true);
-        loadLikeInfo(episodes);
+        setTimeout(() => loadLikeInfoForSeries(episodes), 0);
       } else {
         openNovel(n, false);
       }
