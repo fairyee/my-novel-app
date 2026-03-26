@@ -454,17 +454,6 @@ export default function Home() {
     setSeriesDetail(prev => prev ? { ...prev, _isPublic: makePublic } as any : prev);
   }
 
-  // 시리즈 전체 공개/비공개
-  async function toggleSeriesPublic(seriesId: string, novelId: string, makePublic: boolean) {
-    if (seriesId) {
-      await supabase.from("novels").update({ is_public: makePublic }).eq("series_id", seriesId);
-    } else {
-      await supabase.from("novels").update({ is_public: makePublic }).eq("id", novelId);
-    }
-    fetchMyNovels();
-    setSeriesDetail(prev => prev ? { ...prev, _isPublic: makePublic } as any : prev);
-  }
-
   // 화별 공개 토글
   async function toggleEpisodePublic(e: React.MouseEvent, id: string, current: boolean) {
     e.stopPropagation(); e.preventDefault();
