@@ -54,6 +54,7 @@ interface Novel {
   like_count?: number; is_liked?: boolean;
   series_id?: string; episode_number?: number; series_title?: string;
   cover_image?: string;
+  synopsis?: string;
   _episodes?: Novel[];
 }
 interface Profile { id: string; nickname: string; }
@@ -152,7 +153,7 @@ export default function Home() {
       }
       const { data: existing } = await supabase.from("novels").select("id").eq("series_id", sid).eq("episode_number", currentEpisode).maybeSingle();
       if (existing) {
-        await supabase.from("novels").update({ content: currentText, title: novelTitle, is_public: isPublic }).eq("id", existing.id);
+        await supabase.from("novels").update({ content: currentText, title: novelTitle, is_public: isPublic, synopsis: synopsis || null }).eq("id", existing.id);
       } else {
         await supabase.from("novels").insert({
           user_id: user.id, title: novelTitle, content: currentText,
@@ -160,6 +161,7 @@ export default function Home() {
           is_public: isPublic, views: 0, series_id: sid,
           episode_number: currentEpisode,
           series_title: seriesTitle || novelTitle,
+          synopsis: synopsis || null,
           created_at: new Date().toISOString(),
         });
       }
@@ -352,7 +354,7 @@ export default function Home() {
     if (existing) {
       const { error } = await supabase
         .from("novels")
-        .update({ content, title: novelTitle, is_public: isPublic })
+        .update({ content, title: novelTitle, is_public: isPublic, synopsis: synopsis || null })
         .eq("id", existing.id);
       saveError = error;
     } else {
@@ -363,6 +365,7 @@ export default function Home() {
         episode_number: currentEpisode,
         series_title: seriesTitle || novelTitle,
         cover_image: coverImage || null,
+        synopsis: synopsis || null,
         created_at: new Date().toISOString(),
       });
       saveError = error;
@@ -461,6 +464,16 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setNovel(data.text); setEditedNovel(data.text);
+
+      // 작품소개 자동 생성: synopsis가 없으면 소설 내용 기반으로 생성
+      if (!synopsis.trim()) {
+        const synopsisPrompt = `아래 소설의 작품소개를 2~3문장으로 써주세요. 독자의 호기심을 자극하되 스포일러는 피하고, 감성적인 한국어로. 소개글만 출력하고 다른 말은 하지 마세요.
+
+${data.text.slice(0, 800)}`;
+        const synRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: synopsisPrompt, tokens: 300 }) });
+        const synData = await synRes.json();
+        if (!synData.error) setSynopsis(synData.text.trim());
+      }
     } catch (e: any) { setError("오류: " + e.message); setStep("form"); }
     finally { setLoading(false); }
   }
@@ -490,7 +503,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
       if (!currentSeriesId) setCurrentSeriesId(sid);
       const { data: existing } = await supabase.from("novels").select("id").eq("series_id", sid).eq("episode_number", currentEpisode).maybeSingle();
       if (existing) {
-        await supabase.from("novels").update({ content: currentText, title: novelTitle, is_public: isPublic }).eq("id", existing.id);
+        await supabase.from("novels").update({ content: currentText, title: novelTitle, is_public: isPublic, synopsis: synopsis || null }).eq("id", existing.id);
       } else {
         await supabase.from("novels").insert({
           user_id: user.id, title: novelTitle, content: currentText,
@@ -498,6 +511,7 @@ ${charDesc ? `등장인물:\n${charDesc}` : ""}
           is_public: isPublic, views: 0, series_id: sid,
           episode_number: currentEpisode,
           series_title: seriesTitle || novelTitle,
+          synopsis: synopsis || null,
           created_at: new Date().toISOString(),
         });
       }
@@ -606,9 +620,11 @@ ${prevContent}`;
     const episodes = n._episodes || [];
     const displayTitle = n.series_title && n.series_title !== n.title ? n.series_title : n.title;
     const coverImg = n.cover_image || (episodes[0]?.cover_image);
-    // 줄거리 미리보기: 첫 줄(제목) 제외하고 의미있는 문장들
-    const previewLines = n.content.split("\n").filter((l: string) => l.trim()).slice(1, 6).join(" ");
-    const preview = previewLines.length > 120 ? previewLines.slice(0, 120) + "…" : previewLines;
+    // 작품소개 우선, 없으면 본문에서 추출
+    const synopsisText = n.synopsis || (n._episodes?.[0]?.synopsis) || "";
+    const fallback = n.content.split("\n").filter((l: string) => l.trim()).slice(1, 4).join(" ");
+    const rawPreview = synopsisText || fallback;
+    const preview = rawPreview.length > 130 ? rawPreview.slice(0, 130) + "…" : rawPreview;
     return (
       <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden" }}
         onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
@@ -616,12 +632,39 @@ ${prevContent}`;
         onClick={() => openNovel(episodes.length > 0 ? episodes[0] : n, showActions)}>
 
         {/* 커버 이미지 */}
-        {coverImg && (
+        {coverImg ? (
           <div style={{ width: "100%", height: 160, overflow: "hidden", position: "relative" }}>
             <img src={coverImg} alt={displayTitle} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, #160f22)" }} />
+            {showActions && (
+              <label style={{ position: "absolute", bottom: 10, right: 10, background: "#0d0a14cc", border: "1px solid #4a3570", borderRadius: 8, padding: "5px 10px", color: "#c4b8d8", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}
+                onClick={(e) => e.stopPropagation()}>
+                <input type="file" accept="image/*" style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    const sid = n.series_id || n.id;
+                    if (!file || !sid) return;
+                    await uploadCover(file, sid);
+                    fetchMyNovels();
+                  }} />
+                🖼️ 변경
+              </label>
+            )}
           </div>
-        )}
+        ) : showActions ? (
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: 80, background: "#1a1228", borderBottom: "1px dashed #2d2040", cursor: "pointer", color: "#5a4a6a", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }}
+            onClick={(e) => e.stopPropagation()}>
+            <input type="file" accept="image/*" style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                const sid = n.series_id || n.id;
+                if (!file || !sid) return;
+                await uploadCover(file, sid);
+                fetchMyNovels();
+              }} />
+            {coverUploading ? "업로드 중..." : "🖼️ 커버 이미지 추가"}
+          </label>
+        ) : null}
 
         <div style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
@@ -853,12 +896,37 @@ ${prevContent}`;
                 </div>
               )}
               <div style={{ padding: "28px 20px" }}>
-                {readingNovel.cover_image && (
+                {readingNovel.cover_image ? (
                   <div style={{ borderRadius: 12, overflow: "hidden", marginBottom: 20, position: "relative" }}>
                     <img src={readingNovel.cover_image} alt="cover" style={{ width: "100%", height: 200, objectFit: "cover" }} />
                     <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 50%, #0d0a14)" }} />
+                    {isMyNovel && (
+                      <label style={{ position: "absolute", bottom: 10, right: 10, background: "#0d0a14cc", border: "1px solid #4a3570", borderRadius: 8, padding: "5px 10px", color: "#c4b8d8", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}>
+                        <input type="file" accept="image/*" style={{ display: "none" }}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            const sid = readingNovel.series_id || readingNovel.id;
+                            if (!file || !sid) return;
+                            const url = await uploadCover(file, sid);
+                            if (url) setReadingNovel({ ...readingNovel, cover_image: url });
+                          }} />
+                        🖼️ 변경
+                      </label>
+                    )}
                   </div>
-                )}
+                ) : isMyNovel ? (
+                  <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: 100, background: "#160f22", borderRadius: 12, marginBottom: 20, border: "1.5px dashed #2d2040", cursor: "pointer", color: "#5a4a6a", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }}>
+                    <input type="file" accept="image/*" style={{ display: "none" }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        const sid = readingNovel.series_id || readingNovel.id;
+                        if (!file || !sid) return;
+                        const url = await uploadCover(file, sid);
+                        if (url) setReadingNovel({ ...readingNovel, cover_image: url });
+                      }} />
+                    {coverUploading ? "업로드 중..." : "🖼️ 커버 이미지 추가"}
+                  </label>
+                ) : null}
                 {readingNovel.series_title && <div style={{ fontSize: 12, color: "#7c3aed", marginBottom: 6 }}>📚 {readingNovel.series_title}</div>}
                 <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>
                   {readingNovel.episode_number ? `${readingNovel.episode_number}화. ` : ""}{readingNovel.title}
