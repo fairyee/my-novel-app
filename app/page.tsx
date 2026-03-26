@@ -313,20 +313,23 @@ export default function Home() {
     const firstEp = eps[0];
     const isLiked = !!(sd as any)._isLiked;
 
+    // 즉시 UI 업데이트
+    const newIsLiked = !isLiked;
+    const newCount = Math.max(0, ((sd as any)._likeCount || 0) + (isLiked ? -1 : 1));
+    setSeriesDetail({ ...sd, _isLiked: newIsLiked, _likeCount: newCount } as any);
+
+    // DB 업데이트
     if (isLiked) {
       await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", firstEp.id);
     } else {
-      // 중복 방지: 없을 때만 insert
       const { data: rows } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstEp.id);
       if (!rows || rows.length === 0) {
         await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id });
       }
     }
 
-    // 화면 즉시 업데이트
-    const newIsLiked = !isLiked;
-    const newCount = ((sd as any)._likeCount || 0) + (isLiked ? -1 : 1);
-    setSeriesDetail({ ...sd, _isLiked: newIsLiked, _likeCount: Math.max(0, newCount) } as any);
+    // fetchLikedNovels 갱신
+    if (view === "library") fetchLikedNovels();
   }
 
   async function openNovel(n: Novel, mine = false) {
@@ -438,6 +441,28 @@ export default function Home() {
     setSaveMsg(saveError ? "저장 실패 😢" : `${currentEpisode}화 저장됐어요! ✅`);
     setSaving(false);
     setTimeout(() => setSaveMsg(""), 3000);
+  }
+
+  // 시리즈 전체 공개/비공개
+  async function toggleSeriesPublic(seriesId: string, novelId: string, makePublic: boolean) {
+    if (seriesId) {
+      await supabase.from("novels").update({ is_public: makePublic }).eq("series_id", seriesId);
+    } else {
+      await supabase.from("novels").update({ is_public: makePublic }).eq("id", novelId);
+    }
+    fetchMyNovels();
+    setSeriesDetail(prev => prev ? { ...prev, _isPublic: makePublic } as any : prev);
+  }
+
+  // 시리즈 전체 공개/비공개
+  async function toggleSeriesPublic(seriesId: string, novelId: string, makePublic: boolean) {
+    if (seriesId) {
+      await supabase.from("novels").update({ is_public: makePublic }).eq("series_id", seriesId);
+    } else {
+      await supabase.from("novels").update({ is_public: makePublic }).eq("id", novelId);
+    }
+    fetchMyNovels();
+    setSeriesDetail(prev => prev ? { ...prev, _isPublic: makePublic } as any : prev);
   }
 
   // 화별 공개 토글
@@ -1023,6 +1048,26 @@ ${prevContent}`;
                           </button>
                         )}
                       </div>
+                      {/* 시리즈 전체 공개/비공개 */}
+                      {(() => {
+                        const eps = seriesDetail._episodes || [seriesDetail];
+                        const allPublic = eps.every(ep => ep.is_public);
+                        const sid = seriesDetail.series_id || seriesDetail.id;
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040", marginBottom: 8 }}>
+                            <span style={{ fontSize: 13, color: "#c4b8d8" }}>전체 공개 설정</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 12, color: allPublic ? "#7c3aed" : "#5a4a6a" }}>{allPublic ? "🌍 공개" : "🔒 비공개"}</span>
+                              <label style={{ position: "relative", width: 44, height: 24, cursor: "pointer" }}
+                                onClick={() => toggleSeriesPublic(sid, seriesDetail.id, !allPublic)}>
+                                <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: allPublic ? "#7c3aed" : "#2d2040", borderRadius: 24, transition: "0.3s" }}>
+                                  <span style={{ position: "absolute", height: 18, width: 18, left: allPublic ? 23 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <button style={{ width: "100%", padding: "10px", background: "transparent", border: "1px solid #3d1f1f", borderRadius: 10, color: "#f87171", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, marginBottom: 20 }}
                         onClick={() => { setShowDeleteModal(seriesDetail); }}>
                         🗑️ 삭제
