@@ -425,17 +425,28 @@ export default function Home() {
     setTitle(""); setSynopsis(""); setCoverImage(null);
   }
 
-  async function uploadCover(file: File, seriesId: string) {
+  async function uploadCover(file: File, seriesId: string, novelId?: string) {
     setCoverUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${seriesId}/cover.${ext}`;
     const { error } = await supabase.storage.from("novel-covers").upload(path, file, { upsert: true });
-    if (error) { setCoverUploading(false); return null; }
+    if (error) { console.error("upload error:", error); setCoverUploading(false); return null; }
     const { data } = supabase.storage.from("novel-covers").getPublicUrl(path);
-    const url = data.publicUrl;
+    // 캐시 버스팅으로 이미지 즉시 갱신
+    const url = data.publicUrl + "?t=" + Date.now();
     setCoverImage(url);
-    // 해당 시리즈 전체 화에 cover_image 업데이트
+    // 시리즈 전체 화 업데이트
     await supabase.from("novels").update({ cover_image: url }).eq("series_id", seriesId);
+    // novelId가 있으면 단편도 업데이트
+    if (novelId) await supabase.from("novels").update({ cover_image: url }).eq("id", novelId);
+    // 서재 즉시 갱신
+    setMyNovels(prev => prev.map(n => {
+      if (n.series_id === seriesId || n.id === seriesId || n.id === novelId) {
+        const updatedEps = n._episodes?.map(ep => ({ ...ep, cover_image: url }));
+        return { ...n, cover_image: url, _episodes: updatedEps };
+      }
+      return n;
+    }));
     setCoverUploading(false);
     return url;
   }
@@ -644,7 +655,7 @@ ${prevContent}`;
                     const file = e.target.files?.[0];
                     const sid = n.series_id || n.id;
                     if (!file || !sid) return;
-                    await uploadCover(file, sid);
+                    await uploadCover(file, sid, n.series_id ? undefined : n.id);
                     fetchMyNovels();
                   }} />
                 🖼️ 변경
@@ -659,7 +670,7 @@ ${prevContent}`;
                 const file = e.target.files?.[0];
                 const sid = n.series_id || n.id;
                 if (!file || !sid) return;
-                await uploadCover(file, sid);
+                await uploadCover(file, sid, n.series_id ? undefined : n.id);
                 fetchMyNovels();
               }} />
             {coverUploading ? "업로드 중..." : "🖼️ 커버 이미지 추가"}
