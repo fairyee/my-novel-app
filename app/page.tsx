@@ -296,24 +296,22 @@ export default function Home() {
     if (!user) { setShowAuth(true); return; }
     const eps = (sd as any)._episodes || [sd];
     const firstEp = eps[0];
-
-    // DB에서 현재 좋아요 상태 직접 확인
-    const { count: existingCount } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("novel_id", firstEp.id);
-    const isLiked = (existingCount || 0) > 0;
+    const isLiked = !!(sd as any)._isLiked;
 
     if (isLiked) {
       await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", firstEp.id);
     } else {
-      await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id });
+      // 중복 방지: 없을 때만 insert
+      const { data: rows } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstEp.id);
+      if (!rows || rows.length === 0) {
+        await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id });
+      }
     }
 
-    // DB에서 최신 좋아요 수 다시 확인
-    const { count } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("novel_id", firstEp.id);
+    // 화면 즉시 업데이트
     const newIsLiked = !isLiked;
-    const newCount = count || 0;
-    setSeriesDetail(prev => prev ? { ...prev, _isLiked: newIsLiked, _likeCount: newCount } as any : prev);
-    if (view === "explore") fetchPublicNovels();
-    if (view === "library") { fetchMyNovels(); fetchLikedNovels(); }
+    const newCount = ((sd as any)._likeCount || 0) + (isLiked ? -1 : 1);
+    setSeriesDetail({ ...sd, _isLiked: newIsLiked, _likeCount: Math.max(0, newCount) } as any);
   }
 
   async function openNovel(n: Novel, mine = false) {
@@ -689,15 +687,10 @@ ${prevContent}`;
     const handleClick = async () => {
       const loadLikeInfo = async (epList: Novel[]) => {
         const firstId = (epList[0] || n).id;
-        // 전체 좋아요 수
-        const { count: totalCount } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("novel_id", firstId);
-        // 내 좋아요 여부
-        let isLiked = false;
-        if (user) {
-          const { count: myCount } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("novel_id", firstId).eq("user_id", user.id);
-          isLiked = (myCount || 0) > 0;
-        }
-        setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount || 0 } as any : prev);
+        const { data: allLikes } = await supabase.from("likes").select("user_id").eq("novel_id", firstId);
+        const totalCount = allLikes?.length || 0;
+        const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
+        setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
       };
 
       if (showActions) {
