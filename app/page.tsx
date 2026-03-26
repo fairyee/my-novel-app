@@ -687,9 +687,12 @@ ${prevContent}`;
     const handleClick = async () => {
       const loadLikeInfo = async (epList: Novel[]) => {
         const firstId = (epList[0] || n).id;
-        const { data: allLikes } = await supabase.from("likes").select("user_id").eq("novel_id", firstId);
+        console.log("loadLikeInfo firstId:", firstId, "user:", user?.id);
+        const { data: allLikes, error } = await supabase.from("likes").select("user_id").eq("novel_id", firstId);
+        console.log("allLikes:", allLikes, "error:", error);
         const totalCount = allLikes?.length || 0;
         const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
+        console.log("totalCount:", totalCount, "isLiked:", isLiked);
         setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
       };
 
