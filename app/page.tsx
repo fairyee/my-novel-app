@@ -281,9 +281,15 @@ export default function Home() {
 
   async function toggleLike(novelId: string, isLiked: boolean) {
     if (!user) { setShowAuth(true); return; }
-    if (isLiked) await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", novelId);
-    else await supabase.from("likes").insert({ user_id: user.id, novel_id: novelId });
-    fetchPublicNovels();
+    if (isLiked) {
+      await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", novelId);
+    } else {
+      await supabase.from("likes").insert({ user_id: user.id, novel_id: novelId });
+    }
+    // 둘러보기 갱신
+    if (view === "explore") fetchPublicNovels();
+    // 좋아한 작품 갱신
+    if (view === "library" && libraryTab === "liked") fetchLikedNovels();
   }
 
   async function openNovel(n: Novel, mine = false) {
@@ -412,6 +418,7 @@ export default function Home() {
     fetchMyNovels();
     setShowDeleteModal(null);
     if (readingNovel?.id === id) setReadingNovel(null);
+    setSeriesDetail(null);
   }
 
   async function deleteSeries(seriesId: string) {
@@ -419,6 +426,7 @@ export default function Home() {
     fetchMyNovels();
     setShowDeleteModal(null);
     setReadingNovel(null);
+    setSeriesDetail(null);
   }
 
   function toggleTag(tag: string) {
@@ -935,31 +943,37 @@ ${prevContent}`;
                   </div>
                 )}
 
-                {/* 서재 전용: 커버변경 + 다음화쓰기 */}
+                {/* 서재 전용: 커버변경 + 다음화쓰기 + 삭제 */}
                 {(seriesDetail as any)._isMine && (() => {
                   const eps = seriesDetail._episodes || [];
                   const lastEp = eps[eps.length - 1];
                   return (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 24 }}>
-                      <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }}>
-                        <input type="file" accept="image/*" style={{ display: "none" }}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            const sid = seriesDetail.series_id || seriesDetail.id;
-                            if (!file || !sid) return;
-                            const url = await uploadCover(file, sid, seriesDetail.series_id ? undefined : seriesDetail.id);
-                            if (url) setSeriesDetail({ ...seriesDetail, cover_image: url } as any);
-                            fetchMyNovels();
-                          }} />
-                        {coverUploading ? "업로드 중..." : "🖼️ 커버 변경"}
-                      </label>
-                      {lastEp && (
-                        <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #7c3aed", borderRadius: 12, color: "#c4b8ff", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
-                          onClick={() => { setSeriesDetail(null); continueFromLibrary(lastEp); }}>
-                          📖 다음 화 쓰기
-                        </button>
-                      )}
-                    </div>
+                    <>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                        <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", background: "transparent", border: "1.5px solid #2d2040", borderRadius: 12, color: "#9a8aaa", cursor: "pointer", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }}>
+                          <input type="file" accept="image/*" style={{ display: "none" }}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              const sid = seriesDetail.series_id || seriesDetail.id;
+                              if (!file || !sid) return;
+                              const url = await uploadCover(file, sid, seriesDetail.series_id ? undefined : seriesDetail.id);
+                              if (url) setSeriesDetail({ ...seriesDetail, cover_image: url } as any);
+                              fetchMyNovels();
+                            }} />
+                          {coverUploading ? "업로드 중..." : "🖼️ 커버 변경"}
+                        </label>
+                        {lastEp && (
+                          <button style={{ padding: "11px", background: "transparent", border: "1.5px solid #7c3aed", borderRadius: 12, color: "#c4b8ff", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13 }}
+                            onClick={() => { setSeriesDetail(null); continueFromLibrary(lastEp); }}>
+                            📖 다음 화 쓰기
+                          </button>
+                        )}
+                      </div>
+                      <button style={{ width: "100%", padding: "10px", background: "transparent", border: "1px solid #3d1f1f", borderRadius: 10, color: "#f87171", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, marginBottom: 20 }}
+                        onClick={() => { setShowDeleteModal(seriesDetail); }}>
+                        🗑️ 삭제
+                      </button>
+                    </>
                   );
                 })()}
 
