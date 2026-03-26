@@ -51,8 +51,8 @@ interface Character { id: number; name: string; desc: string; role: string; }
 interface Novel {
   id: string; title: string; content: string; genre: string; tags: string;
   is_public: boolean; created_at: string; views: number;
-  like_count?: number; is_liked?: boolean;
   series_id?: string; episode_number?: number; series_title?: string;
+  like_count?: number; is_liked?: boolean;
   cover_image?: string;
   synopsis?: string;
   _episodes?: Novel[];
@@ -294,50 +294,27 @@ export default function Home() {
     setPublicNovels(allCards);
   }
 
-  async function toggleLike(novelId: string, isLiked: boolean) {
-    if (!user) { setShowAuth(true); return; }
-    try {
-      if (isLiked) {
-        await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", novelId);
-      } else {
-        await supabase.from("likes").insert({ user_id: user.id, novel_id: novelId });
-      }
-    } catch (e) { console.error("like error:", e); }
-    if (view === "explore") fetchPublicNovels();
-    if (view === "library") { fetchMyNovels(); fetchLikedNovels(); }
+
+
+
+  // ===== 좋아요 시스템 =====
+  async function getLikeStatus(novelId: string): Promise<{isLiked: boolean, count: number}> {
+    const { data } = await supabase.from("likes").select("user_id").eq("novel_id", novelId);
+    const count = data?.length || 0;
+    const isLiked = user ? (data || []).some((l: any) => l.user_id === user.id) : false;
+    return { isLiked, count };
   }
 
-  // 좋아요 정보 로드 - 독립 함수
-  async function loadLikeInfoForSeries(epList: Novel[]) {
-    const allIds = epList.map(ep => ep.id);
-    if (allIds.length === 0) return;
-    const { data: allLikes } = await supabase.from("likes").select("user_id, novel_id").in("novel_id", allIds);
-    const totalCount = allLikes?.length || 0;
-    const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
-    setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
+  async function doLike(novelId: string) {
+    if (!user) { setShowAuth(true); return false; }
+    const { error } = await supabase.from("likes").insert({ user_id: user.id, novel_id: novelId });
+    return !error;
   }
 
-  async function toggleSeriesLike(sd: Novel) {
-    if (!user) { setShowAuth(true); return; }
-    const eps = (sd as any)._episodes || [sd];
-    const allIds = eps.map((ep: Novel) => ep.id);
-    const isLiked = !!(sd as any)._isLiked;
-
-    // 즉시 UI 업데이트
-    setSeriesDetail(prev => prev ? { ...prev, _isLiked: !isLiked, _likeCount: Math.max(0, ((prev as any)._likeCount || 0) + (isLiked ? -1 : 1)) } as any : prev);
-
-    if (isLiked) {
-      await supabase.from("likes").delete().eq("user_id", user.id).in("novel_id", allIds);
-    } else {
-      const firstId = eps[0]?.id;
-      if (firstId) {
-        const { data: existing } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstId);
-        if (!existing || existing.length === 0) {
-          await supabase.from("likes").insert({ user_id: user.id, novel_id: firstId });
-        }
-      }
-    }
-    fetchLikedNovels();
+  async function doUnlike(novelId: string) {
+    if (!user) return false;
+    const { error } = await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", novelId);
+    return !error;
   }
 
   async function openNovel(n: Novel, mine = false) {
@@ -721,15 +698,21 @@ ${prevContent}`;
     const preview = rawPreview.length > 120 ? rawPreview.slice(0, 120) + "…" : rawPreview;
 
     const handleClick = async () => {
+      const loadLikes = async (epList: Novel[], target: Novel) => {
+        const firstId = (epList[0] || target).id;
+        const status = await getLikeStatus(firstId);
+        setSeriesDetail(prev => prev ? { ...prev, is_liked: status.isLiked, like_count: status.count } as any : prev);
+      };
+
       if (showActions) {
         const epList = episodes.length > 0 ? episodes : [n];
-        setSeriesDetail({ ...n, _episodes: epList, _isMine: true, _isLiked: false, _likeCount: 0 } as any);
+        setSeriesDetail({ ...n, _episodes: epList, _isMine: true, is_liked: false, like_count: 0 } as any);
         setShowToc(true);
-        setTimeout(() => loadLikeInfoForSeries(epList), 0);
+        loadLikes(epList, n);
       } else if (episodes.length > 0) {
-        setSeriesDetail({ ...n, _episodes: episodes, _isMine: false, _isLiked: false, _likeCount: 0 } as any);
+        setSeriesDetail({ ...n, _episodes: episodes, _isMine: false, is_liked: false, like_count: 0 } as any);
         setShowToc(true);
-        setTimeout(() => loadLikeInfoForSeries(episodes), 0);
+        loadLikes(episodes, n);
       } else {
         openNovel(n, false);
       }
@@ -976,14 +959,31 @@ ${prevContent}`;
                     <span key={t} style={{ fontSize: 11, background: "#1a1228", color: "#7a6a8a", borderRadius: 20, padding: "3px 10px", border: "1px solid #2d2040" }}>#{t.trim()}</span>
                   ))}
                 </div>
-                {/* 좋아요 버튼 */}
-                <button
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", background: (seriesDetail as any)._isLiked ? "#2d1f4e" : "transparent", border: `1.5px solid ${(seriesDetail as any)._isLiked ? "#7c3aed" : "#2d2040"}`, borderRadius: 24, color: (seriesDetail as any)._isLiked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, marginBottom: 20, transition: "all 0.2s" }}
-                  onClick={() => toggleSeriesLike(seriesDetail)}>
-                  {(seriesDetail as any)._isLiked ? "❤️" : "🤍"}
-                  <span>{(seriesDetail as any)._isLiked ? "좋아요 취소" : "좋아요"}</span>
-                  {(seriesDetail as any)._likeCount > 0 && <span style={{ fontSize: 12, color: "#7a6a8a" }}>{(seriesDetail as any)._likeCount}</span>}
-                </button>
+                {/* 좋아요 버튼 - 작품소개 화면 */}
+                {(() => {
+                  const firstEpId = ((seriesDetail._episodes || [])[0] || seriesDetail).id;
+                  const liked = seriesDetail.is_liked;
+                  const likeCount = seriesDetail.like_count || 0;
+                  return (
+                    <button style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", background: liked ? "#2d1f4e" : "transparent", border: `1.5px solid ${liked ? "#7c3aed" : "#2d2040"}`, borderRadius: 24, color: liked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, marginBottom: 20, transition: "all 0.2s" }}
+                      onClick={async () => {
+                        if (!user) { setShowAuth(true); return; }
+                        if (liked) {
+                          await doUnlike(firstEpId);
+                          setSeriesDetail({ ...seriesDetail, is_liked: false, like_count: Math.max(0, likeCount - 1) } as any);
+                        } else {
+                          await doLike(firstEpId);
+                          setSeriesDetail({ ...seriesDetail, is_liked: true, like_count: likeCount + 1 } as any);
+                        }
+                        fetchLikedNovels();
+                      }}>
+                      {liked ? "❤️" : "🤍"}
+                      <span>{liked ? "좋아요 취소" : "좋아요"}</span>
+                      {likeCount > 0 && <span style={{ fontSize: 12, color: "#7a6a8a" }}>{likeCount}</span>}
+                    </button>
+                  );
+                })()}
+
 
                 {/* 작품소개 */}
                 {seriesDetail.synopsis && (
