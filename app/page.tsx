@@ -126,6 +126,14 @@ export default function Home() {
   const accentColor = selectedGenre?.color || "#a78bfa";
 
   useEffect(() => {
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      const u = data.session?.user ?? null;
+      setUser(u);
+      if (u) fetchProfile(u.id);
+      else setProfile(null);
+    };
+    initAuth();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       const u = session?.user ?? null;
       setUser(u);
@@ -317,12 +325,59 @@ export default function Home() {
     return !error;
   }
 
+  async function toggleLike(target: Novel) {
+    if (!user) { setShowAuth(true); return; }
+    const targetId = (target._episodes && target._episodes.length > 0) ? target._episodes[0].id : target.id;
+    const currentlyLiked = !!target.is_liked;
+    const nextLiked = !currentlyLiked;
+
+    // 낙관적 업데이트
+    const updateNovel = (item: Novel) => {
+      const itemId = (item._episodes && item._episodes.length > 0) ? item._episodes[0].id : item.id;
+      if (itemId !== targetId) return item;
+      return { ...item, is_liked: nextLiked, like_count: Math.max(0, (item.like_count || 0) + (nextLiked ? 1 : -1)) };
+    };
+    setPublicNovels(prev => prev.map(updateNovel));
+    if (seriesDetail) {
+      const sdId = (seriesDetail._episodes && seriesDetail._episodes.length > 0) ? seriesDetail._episodes[0].id : seriesDetail.id;
+      if (sdId === targetId) setSeriesDetail({ ...seriesDetail, is_liked: nextLiked, like_count: Math.max(0, (seriesDetail.like_count || 0) + (nextLiked ? 1 : -1)) } as any);
+    }
+
+    // DB 업데이트
+    if (nextLiked) {
+      await doLike(targetId);
+    } else {
+      await doUnlike(targetId);
+    }
+    fetchLikedNovels();
+    fetchPublicNovels();
+  }
+
+  async function toggleLike(target: Novel) {
+    if (!user) { setShowAuth(true); return; }
+    const targetId = (target._episodes && (target._episodes as any[]).length > 0) ? (target._episodes as any[])[0].id : target.id;
+    const nextLiked = !target.is_liked;
+    const updateNovel = (item: Novel) => {
+      const itemId = (item._episodes && (item._episodes as any[]).length > 0) ? (item._episodes as any[])[0].id : item.id;
+      if (itemId !== targetId) return item;
+      return { ...item, is_liked: nextLiked, like_count: Math.max(0, (item.like_count || 0) + (nextLiked ? 1 : -1)) };
+    };
+    setPublicNovels(prev => prev.map(updateNovel));
+    if (seriesDetail) {
+      const sdId = ((seriesDetail as any)._episodes?.length > 0) ? (seriesDetail as any)._episodes[0].id : seriesDetail.id;
+      if (sdId === targetId) setSeriesDetail({ ...seriesDetail, is_liked: nextLiked, like_count: Math.max(0, (seriesDetail.like_count || 0) + (nextLiked ? 1 : -1)) } as any);
+    }
+    if (nextLiked) { await doLike(targetId); } else { await doUnlike(targetId); }
+    fetchLikedNovels();
+    fetchPublicNovels();
+  }
+
   async function openNovel(n: Novel, mine = false) {
     await supabase.rpc("increment_views", { novel_id: n.id });
-    setReadingNovel({ ...n, views: (n.views || 0) + 1 });
     setIsMyNovel(mine);
     setComments([]); setCommentText("");
     fetchComments(n.id);
+    let likeTargetId = n.id;
     if (n.series_id) {
       let seriesQuery = supabase.from("novels").select("*").eq("series_id", n.series_id).order("episode_number", { ascending: true });
       if (!mine) seriesQuery = seriesQuery.eq("is_public", true);
@@ -357,10 +412,14 @@ export default function Home() {
   }
 
   async function handleGoogleLogin() {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
     });
+    if (error) setAuthError(error.message);
   }
 
   async function handleAuth() {
@@ -774,9 +833,9 @@ ${prevContent}`;
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "#5a4a6a", marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
             <span>👁 {n.views || 0}</span>
-<button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#5a4a6a", display: "flex", alignItems: "center", gap: 2, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
-              onClick={(e) => { e.stopPropagation(); handleClick(); }}>
-              🤍 {n.like_count || 0}
+<button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: n.is_liked ? "#f472b6" : "#5a4a6a", display: "flex", alignItems: "center", gap: 2, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
+              onClick={async (e) => { e.stopPropagation(); await toggleLike(n); }}>
+              {n.is_liked ? "❤️" : "🤍"} {n.like_count || 0}
             </button>
             <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
           </div>
@@ -966,17 +1025,7 @@ ${prevContent}`;
                   const likeCount = seriesDetail.like_count || 0;
                   return (
                     <button style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", background: liked ? "#2d1f4e" : "transparent", border: `1.5px solid ${liked ? "#7c3aed" : "#2d2040"}`, borderRadius: 24, color: liked ? "#c4b8ff" : "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, marginBottom: 20, transition: "all 0.2s" }}
-                      onClick={async () => {
-                        if (!user) { setShowAuth(true); return; }
-                        if (liked) {
-                          await doUnlike(firstEpId);
-                          setSeriesDetail({ ...seriesDetail, is_liked: false, like_count: Math.max(0, likeCount - 1) } as any);
-                        } else {
-                          await doLike(firstEpId);
-                          setSeriesDetail({ ...seriesDetail, is_liked: true, like_count: likeCount + 1 } as any);
-                        }
-                        fetchLikedNovels();
-                      }}>
+                      onClick={async () => { await toggleLike(seriesDetail); }}>
                       {liked ? "❤️" : "🤍"}
                       <span>{liked ? "좋아요 취소" : "좋아요"}</span>
                       {likeCount > 0 && <span style={{ fontSize: 12, color: "#7a6a8a" }}>{likeCount}</span>}
