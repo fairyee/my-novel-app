@@ -292,21 +292,26 @@ export default function Home() {
     if (view === "library") { fetchMyNovels(); fetchLikedNovels(); }
   }
 
-  async function toggleSeriesLike(seriesDetail: Novel) {
+  async function toggleSeriesLike(sd: Novel) {
     if (!user) { setShowAuth(true); return; }
-    const eps = (seriesDetail as any)._episodes || [seriesDetail];
+    const eps = (sd as any)._episodes || [sd];
     const firstEp = eps[0];
-    const isLiked = !!(seriesDetail as any)._isLiked;
-    try {
-      if (isLiked) {
-        await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", firstEp.id);
-      } else {
-        await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id });
-      }
-      const newLiked = !isLiked;
-      const newCount = ((seriesDetail as any)._likeCount || 0) + (isLiked ? -1 : 1);
-      setSeriesDetail({ ...seriesDetail, _isLiked: newLiked, _likeCount: newCount } as any);
-    } catch (e) { console.error("like error:", e); }
+    const isLiked = !!(sd as any)._isLiked;
+
+    if (isLiked) {
+      const { error } = await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", firstEp.id);
+      if (error) { alert("좋아요 취소 오류: " + error.message); return; }
+    } else {
+      const { error } = await supabase.from("likes").upsert(
+        { user_id: user.id, novel_id: firstEp.id },
+        { onConflict: "user_id,novel_id" }
+      );
+      if (error) { alert("좋아요 오류: " + error.message); return; }
+    }
+
+    const newLiked = !isLiked;
+    const newCount = ((sd as any)._likeCount || 0) + (isLiked ? -1 : 1);
+    setSeriesDetail({ ...sd, _isLiked: newLiked, _likeCount: newCount } as any);
     if (view === "explore") fetchPublicNovels();
     if (view === "library") { fetchMyNovels(); fetchLikedNovels(); }
   }
