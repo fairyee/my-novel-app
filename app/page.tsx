@@ -53,6 +53,7 @@ interface Novel {
   is_public: boolean; created_at: string; views: number;
   like_count?: number; is_liked?: boolean;
   series_id?: string; episode_number?: number; series_title?: string;
+  cover_image?: string;
   _episodes?: Novel[];
 }
 interface Profile { id: string; nickname: string; }
@@ -111,6 +112,8 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [autoSaveMsg, setAutoSaveMsg] = useState("");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
@@ -359,6 +362,7 @@ export default function Home() {
         is_public: isPublic, views: 0, series_id: sid,
         episode_number: currentEpisode,
         series_title: seriesTitle || novelTitle,
+        cover_image: coverImage || null,
         created_at: new Date().toISOString(),
       });
       saveError = error;
@@ -415,7 +419,22 @@ export default function Home() {
   function resetForm() {
     setStep("form"); setNovel(""); setEditedNovel(""); setIsEditing(false);
     setCurrentSeriesId(null); setCurrentEpisode(1); setSaveMsg("");
-    setTitle(""); setSynopsis("");
+    setTitle(""); setSynopsis(""); setCoverImage(null);
+  }
+
+  async function uploadCover(file: File, seriesId: string) {
+    setCoverUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${seriesId}/cover.${ext}`;
+    const { error } = await supabase.storage.from("novel-covers").upload(path, file, { upsert: true });
+    if (error) { setCoverUploading(false); return null; }
+    const { data } = supabase.storage.from("novel-covers").getPublicUrl(path);
+    const url = data.publicUrl;
+    setCoverImage(url);
+    // 해당 시리즈 전체 화에 cover_image 업데이트
+    await supabase.from("novels").update({ cover_image: url }).eq("series_id", seriesId);
+    setCoverUploading(false);
+    return url;
   }
 
   async function generateNovel() {
@@ -586,30 +605,48 @@ ${prevContent}`;
   const NovelCard = ({ n, showActions = false }: { n: Novel; showActions?: boolean }) => {
     const episodes = n._episodes || [];
     const displayTitle = n.series_title && n.series_title !== n.title ? n.series_title : n.title;
+    const coverImg = n.cover_image || (episodes[0]?.cover_image);
+    // 줄거리 미리보기: 첫 줄(제목) 제외하고 의미있는 문장들
+    const previewLines = n.content.split("\n").filter((l: string) => l.trim()).slice(1, 6).join(" ");
+    const preview = previewLines.length > 120 ? previewLines.slice(0, 120) + "…" : previewLines;
     return (
-      <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, padding: "16px", marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s" }}
+      <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden" }}
         onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
         onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
         onClick={() => openNovel(episodes.length > 0 ? episodes[0] : n, showActions)}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayTitle}</div>
-            <div style={{ fontSize: 11, color: "#5a4a6a" }}>
-              {n.genre}{n.tags && ` · ${n.tags.split(",").slice(0, 2).join(", ")}`}
-              {episodes.length > 0 && <span style={{ color: "#7c3aed", marginLeft: 6 }}>총 {episodes.length}화</span>}
-            </div>
+
+        {/* 커버 이미지 */}
+        {coverImg && (
+          <div style={{ width: "100%", height: 160, overflow: "hidden", position: "relative" }}>
+            <img src={coverImg} alt={displayTitle} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, #160f22)" }} />
           </div>
-          {showActions && episodes.length === 0 && (
-            <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-              <PublicToggle ep={n} />
-              <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
-                onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>삭제</button>
+        )}
+
+        <div style={{ padding: "14px 16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayTitle}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+                {n.genre && <span style={{ fontSize: 10, background: "#2d1f4e", color: "#a78bfa", borderRadius: 20, padding: "2px 8px" }}>{n.genre}</span>}
+                {episodes.length > 0 && <span style={{ fontSize: 10, background: "#1a2d1f", color: "#6ee7b7", borderRadius: 20, padding: "2px 8px" }}>총 {episodes.length}화</span>}
+                {n.tags && n.tags.split(",").slice(0, 2).map((t: string) => (
+                  <span key={t} style={{ fontSize: 10, background: "#1a1228", color: "#7a6a8a", borderRadius: 20, padding: "2px 8px", border: "1px solid #2d2040" }}>#{t.trim()}</span>
+                ))}
+              </div>
             </div>
-          )}
-        </div>
-        <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.7, maxHeight: 60, overflow: "hidden", WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent)", marginBottom: 10 }}>
-          {n.content.split("\n").filter((l: string) => l.trim()).slice(1, 4).join(" ")}
-        </div>
+            {showActions && episodes.length === 0 && (
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                <PublicToggle ep={n} />
+                <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
+                  onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>삭제</button>
+              </div>
+            )}
+          </div>
+          {/* 줄거리 미리보기 */}
+          <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.8, marginBottom: 10 }}>
+            {preview}
+          </div>
 
         {/* 시리즈일 때 화별 목록 + 공개 토글 + 삭제 */}
         {showActions && episodes.length > 0 && (
@@ -645,6 +682,7 @@ ${prevContent}`;
             <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
           </div>
         )}
+        </div>{/* padding div 닫기 */}
       </div>
     );
   };
@@ -815,6 +853,12 @@ ${prevContent}`;
                 </div>
               )}
               <div style={{ padding: "28px 20px" }}>
+                {readingNovel.cover_image && (
+                  <div style={{ borderRadius: 12, overflow: "hidden", marginBottom: 20, position: "relative" }}>
+                    <img src={readingNovel.cover_image} alt="cover" style={{ width: "100%", height: 200, objectFit: "cover" }} />
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 50%, #0d0a14)" }} />
+                  </div>
+                )}
                 {readingNovel.series_title && <div style={{ fontSize: 12, color: "#7c3aed", marginBottom: 6 }}>📚 {readingNovel.series_title}</div>}
                 <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>
                   {readingNovel.episode_number ? `${readingNovel.episode_number}화. ` : ""}{readingNovel.title}
@@ -1076,7 +1120,32 @@ ${prevContent}`;
 
                   {!loading && novel && (
                     <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0", padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
+                      {/* 커버 이미지 업로드 */}
+                      <div style={{ margin: "14px 0", padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
+                        <div style={{ fontSize: 12, color: "#7a6a8a", marginBottom: 8 }}>🖼️ 커버 이미지</div>
+                        {coverImage ? (
+                          <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
+                            <img src={coverImage} alt="cover" style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 8 }} />
+                            <button
+                              style={{ position: "absolute", top: 6, right: 6, background: "#0d0a14cc", border: "1px solid #2d2040", borderRadius: 6, color: "#f87171", fontSize: 11, padding: "3px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}
+                              onClick={() => setCoverImage(null)}>삭제</button>
+                          </div>
+                        ) : (
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "10px", border: "1.5px dashed #2d2040", borderRadius: 8, color: "#5a4a6a", fontSize: 13 }}>
+                            <input type="file" accept="image/*" style={{ display: "none" }}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file || !user) return;
+                                const sid = currentSeriesId || crypto.randomUUID();
+                                if (!currentSeriesId) setCurrentSeriesId(sid);
+                                await uploadCover(file, sid);
+                              }} />
+                            {coverUploading ? "업로드 중..." : "📁 이미지 선택 (jpg, png)"}
+                          </label>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
                         <label style={{ position: "relative", width: 44, height: 24, cursor: "pointer", flexShrink: 0 }}>
                           <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
                           <span style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: isPublic ? "#7c3aed" : "#2d2040", borderRadius: 24, transition: "0.3s" }}>
