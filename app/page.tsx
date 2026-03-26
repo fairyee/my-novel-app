@@ -84,6 +84,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [readingNovel, setReadingNovel] = useState<Novel|null>(null);
   const [seriesDetail, setSeriesDetail] = useState<Novel|null>(null);
+  const [showToc, setShowToc] = useState(false);
   const [readingSeries, setReadingSeries] = useState<Novel[]>([]);
   const [isMyNovel, setIsMyNovel] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<Novel|null>(null);
@@ -632,118 +633,88 @@ ${prevContent}`;
     const episodes = n._episodes || [];
     const displayTitle = n.series_title && n.series_title !== n.title ? n.series_title : n.title;
     const coverImg = n.cover_image || (episodes[0]?.cover_image);
-    // 작품소개 우선, 없으면 본문에서 추출
     const synopsisText = n.synopsis || (n._episodes?.[0]?.synopsis) || "";
     const fallback = n.content.split("\n").filter((l: string) => l.trim()).slice(1, 4).join(" ");
     const rawPreview = synopsisText || fallback;
-    const preview = rawPreview.length > 130 ? rawPreview.slice(0, 130) + "…" : rawPreview;
+    const preview = rawPreview.length > 120 ? rawPreview.slice(0, 120) + "…" : rawPreview;
+
+    const handleClick = () => {
+      if (showActions) {
+        // 서재: 무조건 작품소개 화면
+        setSeriesDetail({ ...n, _episodes: episodes.length > 0 ? episodes : [n], _isMine: true } as any);
+        setShowToc(false);
+      } else if (episodes.length > 0) {
+        // 둘러보기 시리즈
+        setSeriesDetail({ ...n, _episodes: episodes, _isMine: false } as any);
+        setShowToc(false);
+      } else {
+        openNovel(n, false);
+      }
+    };
+
+    // 서재 카드: 커버 상단 + 제목/줄거리만 (심플)
+    if (showActions) {
+      return (
+        <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden" }}
+          onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
+          onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
+          onClick={handleClick}>
+          {coverImg ? (
+            <div style={{ width: "100%", background: "#0d0a14", display: "flex", justifyContent: "center" }}>
+              <img src={coverImg} alt={displayTitle} style={{ width: "100%", maxHeight: 200, objectFit: "contain" }} />
+            </div>
+          ) : (
+            <div style={{ height: 80, background: "#1a1228", borderBottom: "1px dashed #2d2040", display: "flex", alignItems: "center", justifyContent: "center", color: "#3a2a4a", fontSize: 28 }}>📖</div>
+          )}
+          <div style={{ padding: "14px 16px" }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayTitle}</div>
+            <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
+              {n.genre && <span style={{ fontSize: 10, background: "#2d1f4e", color: "#a78bfa", borderRadius: 20, padding: "2px 8px" }}>{n.genre}</span>}
+              {episodes.length > 0 && <span style={{ fontSize: 10, background: "#1a2d1f", color: "#6ee7b7", borderRadius: 20, padding: "2px 8px" }}>총 {episodes.length}화</span>}
+            </div>
+            <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.7 }}>{preview}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // 둘러보기 카드: 사진 왼쪽 + 내용 오른쪽
     return (
-      <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden" }}
+      <div style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden", display: "flex", gap: 0 }}
         onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
         onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
-        onClick={() => {
-          if (episodes.length > 0) {
-            setSeriesDetail({ ...n, _episodes: episodes });
-          } else {
-            openNovel(n, showActions);
-          }
-        }}>
+        onClick={handleClick}>
 
-        {/* 커버 이미지 */}
-        {coverImg ? (
-          <div style={{ width: "100%", height: 160, overflow: "hidden", position: "relative" }}>
-            <img src={coverImg} alt={displayTitle} style={{ width: "100%", height: "100%", objectFit: "contain", background: "#0d0a14" }} />
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 60%, #160f22)" }} />
-            {showActions && (
-              <label style={{ position: "absolute", bottom: 10, right: 10, background: "#0d0a14cc", border: "1px solid #4a3570", borderRadius: 8, padding: "5px 10px", color: "#c4b8d8", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}
-                onClick={(e) => e.stopPropagation()}>
-                <input type="file" accept="image/*" style={{ display: "none" }}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    const sid = n.series_id || n.id;
-                    if (!file || !sid) return;
-                    await uploadCover(file, sid, n.series_id ? undefined : n.id);
-                    fetchMyNovels();
-                  }} />
-                🖼️ 변경
-              </label>
-            )}
-          </div>
-        ) : showActions ? (
-          <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, height: 80, background: "#1a1228", borderBottom: "1px dashed #2d2040", cursor: "pointer", color: "#5a4a6a", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }}
-            onClick={(e) => e.stopPropagation()}>
-            <input type="file" accept="image/*" style={{ display: "none" }}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                const sid = n.series_id || n.id;
-                if (!file || !sid) return;
-                await uploadCover(file, sid, n.series_id ? undefined : n.id);
-                fetchMyNovels();
-              }} />
-            {coverUploading ? "업로드 중..." : "🖼️ 커버 이미지 추가"}
-          </label>
-        ) : null}
+        {/* 왼쪽 커버 */}
+        <div style={{ width: 110, flexShrink: 0, background: "#0d0a14", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+          {coverImg ? (
+            <img src={coverImg} alt={displayTitle} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <div style={{ color: "#3a2a4a", fontSize: 32 }}>📖</div>
+          )}
+        </div>
 
-        <div style={{ padding: "14px 16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayTitle}</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
-                {n.genre && <span style={{ fontSize: 10, background: "#2d1f4e", color: "#a78bfa", borderRadius: 20, padding: "2px 8px" }}>{n.genre}</span>}
-                {episodes.length > 0 && <span style={{ fontSize: 10, background: "#1a2d1f", color: "#6ee7b7", borderRadius: 20, padding: "2px 8px" }}>총 {episodes.length}화</span>}
-                {n.tags && n.tags.split(",").slice(0, 2).map((t: string) => (
-                  <span key={t} style={{ fontSize: 10, background: "#1a1228", color: "#7a6a8a", borderRadius: 20, padding: "2px 8px", border: "1px solid #2d2040" }}>#{t.trim()}</span>
-                ))}
-              </div>
+        {/* 오른쪽 내용 */}
+        <div style={{ flex: 1, padding: "14px 14px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayTitle}</div>
+            <div style={{ display: "flex", gap: 4, marginBottom: 7, flexWrap: "wrap" }}>
+              {n.genre && <span style={{ fontSize: 10, background: "#2d1f4e", color: "#a78bfa", borderRadius: 20, padding: "2px 7px" }}>{n.genre}</span>}
+              {episodes.length > 0 && <span style={{ fontSize: 10, background: "#1a2d1f", color: "#6ee7b7", borderRadius: 20, padding: "2px 7px" }}>총 {episodes.length}화</span>}
             </div>
-            {showActions && episodes.length === 0 && (
-              <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                <PublicToggle ep={n} />
-                <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif" }}
-                  onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>삭제</button>
-              </div>
-            )}
+            <div style={{ fontSize: 12, color: "#9a8aaa", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {preview}
+            </div>
           </div>
-          {/* 줄거리 미리보기 */}
-          <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.8, marginBottom: 10 }}>
-            {preview}
-          </div>
-
-        {/* 시리즈일 때 화별 목록 + 공개 토글 + 삭제 */}
-        {showActions && episodes.length > 0 && (
-          <div style={{ borderTop: "1px solid #2d2040", marginTop: 10, paddingTop: 10 }} onClick={(e) => e.stopPropagation()}>
-            {episodes.map((ep) => (
-              <div key={ep.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 4px", borderRadius: 8, transition: "background 0.15s" }}
-                onMouseOver={(e) => (e.currentTarget.style.background = "#1a1228")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}>
-                <span style={{ fontSize: 13, color: "#c4b8d8", cursor: "pointer", flex: 1 }} onClick={() => openNovel(ep, true)}>
-                  {ep.episode_number}화. {ep.title}
-                </span>
-                <PublicToggle ep={ep} />
-              </div>
-            ))}
-            <button style={{ marginTop: 8, width: "100%", padding: "7px", background: "transparent", border: "1px solid #3d1f1f", borderRadius: 8, color: "#f87171", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 12 }}
-              onClick={(e) => { e.stopPropagation(); setShowDeleteModal(n); }}>🗑️ 시리즈 삭제</button>
-          </div>
-        )}
-
-        {!showActions && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a" }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "#5a4a6a", marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
             <span>👁 {n.views || 0}</span>
-            <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: n.is_liked ? "#f472b6" : "#5a4a6a", display: "flex", alignItems: "center", gap: 3, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
+            <button style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: n.is_liked ? "#f472b6" : "#5a4a6a", display: "flex", alignItems: "center", gap: 2, fontFamily: "'Noto Serif KR', serif", padding: 0 }}
               onClick={() => toggleLike(n.id, !!n.is_liked)}>
               {n.is_liked ? "❤️" : "🤍"} {n.like_count || 0}
             </button>
             <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
           </div>
-        )}
-        {showActions && episodes.length === 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "#5a4a6a", marginTop: 6 }}>
-            <span>👁 {n.views || 0}</span>
-            <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
-          </div>
-        )}
-        </div>{/* padding div 닫기 */}
+        </div>
       </div>
     );
   };
@@ -814,7 +785,7 @@ ${prevContent}`;
         </header>
 
         <nav style={{ display: "flex", borderBottom: "1px solid #2d2040", background: "#0d0a14" }}>
-          <button className={`nav-btn${view === "create" ? " active" : ""}`} onClick={() => setView("create")}>✍️ 창작</button>
+          <button className={`nav-btn${view === "create" ? " active" : ""}`} onClick={() => setView("create")}>✍️ 글쓰기</button>
           <button className={`nav-btn${view === "explore" ? " active" : ""}`} onClick={() => setView("explore")}>🔍 둘러보기</button>
           <button className={`nav-btn${view === "library" ? " active" : ""}`} onClick={() => setView("library")}>📚 서재</button>
         </nav>
@@ -957,34 +928,43 @@ ${prevContent}`;
                   );
                 })()}
 
-                {/* 회차 목록 */}
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#7a6a8a", marginBottom: 12 }}>
-                  📋 회차 목록 ({(seriesDetail._episodes || []).length}화)
+                {/* 목차 - 기본 접힘 */}
+                <div
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "#160f22", borderRadius: showToc ? "12px 12px 0 0" : 12, border: "1px solid #2d2040", cursor: "pointer", marginBottom: showToc ? 0 : 0 }}
+                  onClick={() => setShowToc(!showToc)}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#c4b8d8" }}>
+                    📋 목차 <span style={{ color: "#7c3aed", marginLeft: 4 }}>{(seriesDetail._episodes || []).length}화</span>
+                  </span>
+                  <span style={{ fontSize: 13, color: "#5a4a6a", transition: "transform 0.2s", display: "inline-block", transform: showToc ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
                 </div>
-                {(seriesDetail._episodes || []).map((ep) => (
-                  <div key={ep.id}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#160f22", borderRadius: 12, marginBottom: 8, border: "1px solid #2d2040", cursor: "pointer", transition: "border-color 0.2s" }}
-                    onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
-                    onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
-                    onClick={() => openNovel(ep, !!(seriesDetail as any)._isMine)}>
-                    {ep.cover_image ? (
-                      <img src={ep.cover_image} alt="" style={{ width: 52, height: 52, objectFit: "contain", borderRadius: 8, flexShrink: 0, background: "#0d0a14" }} />
-                    ) : (
-                      <div style={{ width: 52, height: 52, borderRadius: 8, background: "#1a1228", border: "1px solid #2d2040", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📖</div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "#e8e0f0", marginBottom: 2 }}>{ep.episode_number}화. {ep.title}</div>
-                      <div style={{ fontSize: 11, color: "#5a4a6a" }}>{new Date(ep.created_at).toLocaleDateString("ko-KR")}</div>
-                    </div>
-                    {(seriesDetail as any)._isMine && (
-                      <button style={{ background: "transparent", border: "1px solid #2d2040", borderRadius: 8, padding: "5px 10px", color: "#7a6a8a", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif", flexShrink: 0 }}
-                        onClick={(e) => { e.stopPropagation(); editFromLibrary(ep); setSeriesDetail(null); }}>
-                        편집
-                      </button>
-                    )}
-                    <span style={{ fontSize: 20, color: "#4a3570" }}>›</span>
+                {showToc && (
+                  <div style={{ border: "1px solid #2d2040", borderTop: "none", borderRadius: "0 0 12px 12px", overflow: "hidden", marginBottom: 8 }}>
+                    {(seriesDetail._episodes || []).map((ep, idx) => (
+                      <div key={ep.id}
+                        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#160f22", borderTop: idx > 0 ? "1px solid #2d2040" : "none", cursor: "pointer", transition: "background 0.15s" }}
+                        onMouseOver={(e) => (e.currentTarget.style.background = "#1a1228")}
+                        onMouseOut={(e) => (e.currentTarget.style.background = "#160f22")}
+                        onClick={() => openNovel(ep, !!(seriesDetail as any)._isMine)}>
+                        {ep.cover_image ? (
+                          <img src={ep.cover_image} alt="" style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 6, flexShrink: 0, background: "#0d0a14" }} />
+                        ) : (
+                          <div style={{ width: 44, height: 44, borderRadius: 6, background: "#1a1228", border: "1px solid #2d2040", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📖</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e0f0", marginBottom: 2 }}>{ep.episode_number}화. {ep.title}</div>
+                          <div style={{ fontSize: 11, color: "#5a4a6a" }}>{new Date(ep.created_at).toLocaleDateString("ko-KR")}</div>
+                        </div>
+                        {(seriesDetail as any)._isMine && (
+                          <button style={{ background: "transparent", border: "1px solid #2d2040", borderRadius: 8, padding: "4px 10px", color: "#7a6a8a", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif", flexShrink: 0 }}
+                            onClick={(e) => { e.stopPropagation(); editFromLibrary(ep); setSeriesDetail(null); }}>
+                            편집
+                          </button>
+                        )}
+                        <span style={{ fontSize: 18, color: "#4a3570", flexShrink: 0 }}>›</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
