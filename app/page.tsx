@@ -327,34 +327,6 @@ export default function Home() {
 
   async function toggleLike(target: Novel) {
     if (!user) { setShowAuth(true); return; }
-    const targetId = (target._episodes && target._episodes.length > 0) ? target._episodes[0].id : target.id;
-    const currentlyLiked = !!target.is_liked;
-    const nextLiked = !currentlyLiked;
-
-    // 낙관적 업데이트
-    const updateNovel = (item: Novel) => {
-      const itemId = (item._episodes && item._episodes.length > 0) ? item._episodes[0].id : item.id;
-      if (itemId !== targetId) return item;
-      return { ...item, is_liked: nextLiked, like_count: Math.max(0, (item.like_count || 0) + (nextLiked ? 1 : -1)) };
-    };
-    setPublicNovels(prev => prev.map(updateNovel));
-    if (seriesDetail) {
-      const sdId = (seriesDetail._episodes && seriesDetail._episodes.length > 0) ? seriesDetail._episodes[0].id : seriesDetail.id;
-      if (sdId === targetId) setSeriesDetail({ ...seriesDetail, is_liked: nextLiked, like_count: Math.max(0, (seriesDetail.like_count || 0) + (nextLiked ? 1 : -1)) } as any);
-    }
-
-    // DB 업데이트
-    if (nextLiked) {
-      await doLike(targetId);
-    } else {
-      await doUnlike(targetId);
-    }
-    fetchLikedNovels();
-    fetchPublicNovels();
-  }
-
-  async function toggleLike(target: Novel) {
-    if (!user) { setShowAuth(true); return; }
     const targetId = (target._episodes && (target._episodes as any[]).length > 0) ? (target._episodes as any[])[0].id : target.id;
     const nextLiked = !target.is_liked;
     const updateNovel = (item: Novel) => {
