@@ -339,22 +339,6 @@ export default function Home() {
     });
   }
 
-  async function handleKakaoLogin() {
-    await supabase.auth.signInWithOAuth({
-      provider: "kakao",
-      options: { redirectTo: window.location.origin },
-    });
-  }
-
-  async function handleGoogleLogin() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-  }
-
-  async function handleAuth() {
-    setAuthLoading(true); setAuthError("");
     const { error } = authMode === "login"
       ? await supabase.auth.signInWithPassword({ email, password })
       : await supabase.auth.signUp({ email, password });
