@@ -302,10 +302,11 @@ export default function Home() {
       const { error } = await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", firstEp.id);
       if (error) { alert("좋아요 취소 오류: " + error.message); return; }
     } else {
-      const { error } = await supabase.from("likes").upsert(
-        { user_id: user.id, novel_id: firstEp.id },
-        { onConflict: "user_id,novel_id" }
-      );
+      // 이미 좋아요 있는지 먼저 확인
+      const { data: existing } = await supabase.from("likes")
+        .select("user_id").eq("user_id", user.id).eq("novel_id", firstEp.id).maybeSingle();
+      if (existing) return; // 이미 있으면 스킵
+      const { error } = await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id });
       if (error) { alert("좋아요 오류: " + error.message); return; }
     }
 
