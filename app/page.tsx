@@ -312,9 +312,11 @@ export default function Home() {
       await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id });
     }
 
-    // 좋아요 수 다시 가져오기
+    // DB에서 최신 좋아요 수 다시 확인
     const { count } = await supabase.from("likes").select("user_id", { count: "exact", head: true }).eq("novel_id", firstEp.id);
-    setSeriesDetail({ ...sd, _isLiked: !isLiked, _likeCount: count || 0 } as any);
+    const newIsLiked = !isLiked;
+    const newCount = count || 0;
+    setSeriesDetail(prev => prev ? { ...prev, _isLiked: newIsLiked, _likeCount: newCount } as any : prev);
     if (view === "explore") fetchPublicNovels();
     if (view === "library") { fetchMyNovels(); fetchLikedNovels(); }
   }
@@ -690,25 +692,26 @@ ${prevContent}`;
     const preview = rawPreview.length > 120 ? rawPreview.slice(0, 120) + "…" : rawPreview;
 
     const handleClick = async () => {
-      if (showActions) {
-        setSeriesDetail({ ...n, _episodes: episodes.length > 0 ? episodes : [n], _isMine: true, _isLiked: false, _likeCount: 0 } as any);
-        setShowToc(true);
-        // 좋아요 정보 로드
+      const loadLikeInfo = async (isMine: boolean, epList: Novel[]) => {
+        const firstId = (epList[0] || n).id;
+        const { count } = await supabase.from("likes").select("user_id", { count: "exact", head: true }).eq("novel_id", firstId);
+        let isLiked = false;
         if (user) {
-          const firstId = (episodes[0] || n).id;
           const { data: likeData } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstId).maybeSingle();
-          const { count } = await supabase.from("likes").select("user_id", { count: "exact", head: true }).eq("novel_id", firstId);
-          setSeriesDetail(prev => prev ? { ...prev, _isLiked: !!likeData, _likeCount: count || 0 } as any : prev);
+          isLiked = !!likeData;
         }
+        setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: count || 0 } as any : prev);
+      };
+
+      if (showActions) {
+        const epList = episodes.length > 0 ? episodes : [n];
+        setSeriesDetail({ ...n, _episodes: epList, _isMine: true, _isLiked: false, _likeCount: 0 } as any);
+        setShowToc(true);
+        loadLikeInfo(true, epList);
       } else if (episodes.length > 0) {
         setSeriesDetail({ ...n, _episodes: episodes, _isMine: false, _isLiked: false, _likeCount: 0 } as any);
         setShowToc(true);
-        if (user) {
-          const firstId = (episodes[0] || n).id;
-          const { data: likeData } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstId).maybeSingle();
-          const { count } = await supabase.from("likes").select("user_id", { count: "exact", head: true }).eq("novel_id", firstId);
-          setSeriesDetail(prev => prev ? { ...prev, _isLiked: !!likeData, _likeCount: count || 0 } as any : prev);
-        }
+        loadLikeInfo(false, episodes);
       } else {
         openNovel(n, false);
       }
