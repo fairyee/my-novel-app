@@ -317,7 +317,8 @@ export default function Home() {
     setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
   }
 
-  // 좋아요 정보 로드 - 독립 함수
+  async function toggleSeriesLike(sd: Novel) {
+    if (!user) { setShowAuth(true); return; }
     const eps = (sd as any)._episodes || [sd];
     const allIds = eps.map((ep: Novel) => ep.id);
     const isLiked = !!(sd as any)._isLiked;
@@ -326,10 +327,8 @@ export default function Home() {
     setSeriesDetail(prev => prev ? { ...prev, _isLiked: !isLiked, _likeCount: Math.max(0, ((prev as any)._likeCount || 0) + (isLiked ? -1 : 1)) } as any : prev);
 
     if (isLiked) {
-      // 이 시리즈의 모든 화에 대한 좋아요 삭제
       await supabase.from("likes").delete().eq("user_id", user.id).in("novel_id", allIds);
     } else {
-      // 1화에 좋아요 추가 (이미 있으면 skip)
       const firstId = eps[0]?.id;
       if (firstId) {
         const { data: existing } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstId);
