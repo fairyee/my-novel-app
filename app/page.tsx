@@ -81,6 +81,7 @@ export default function Home() {
   const [view, setView] = useState<"create"|"library"|"explore">("create");
   const [libraryTab, setLibraryTab] = useState<"my"|"liked">("my");
   const [exploreTab, setExploreTab] = useState<"latest"|"popular">("latest");
+  const [exploreGenre, setExploreGenre] = useState<string>("전체");
   const [searchQuery, setSearchQuery] = useState("");
   const [readingNovel, setReadingNovel] = useState<Novel|null>(null);
   const [seriesDetail, setSeriesDetail] = useState<Novel|null>(null);
@@ -137,7 +138,7 @@ export default function Home() {
   useEffect(() => {
     if (view === "library" && user) { fetchMyNovels(); fetchLikedNovels(); }
     if (view === "explore") fetchPublicNovels();
-  }, [view, user, exploreTab]);
+  }, [view, user, exploreTab, exploreGenre]);
 
   // 자동저장: 타이핑 멈추면 2초 후 저장 (디바운스)
   // isEditing 여부와 관계없이 항상 최신 텍스트를 저장
@@ -215,6 +216,7 @@ export default function Home() {
   async function fetchPublicNovels() {
     // 공개된 화 전체 가져오기
     let query = supabase.from("novels").select("*").eq("is_public", true);
+    if (exploreGenre !== "전체") query = query.ilike("genre", `%${exploreGenre}%`);
     if (searchQuery.trim()) query = query.or(`title.ilike.%${searchQuery}%,tags.ilike.%${searchQuery}%,genre.ilike.%${searchQuery}%`);
     query = exploreTab === "popular" ? query.order("views", { ascending: false }) : query.order("created_at", { ascending: false });
     const { data } = await query.limit(100);
@@ -1347,11 +1349,25 @@ ${prevContent}`;
 
           {view === "explore" && (
             <div className="fade-in">
+              {/* 검색 */}
               <div style={{ marginBottom: 12 }}>
                 <input className="input-field" placeholder="🔍 제목, 장르, 태그 검색..."
                   value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") fetchPublicNovels(); }} />
               </div>
+
+              {/* 장르 필터 탭 */}
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 12, scrollbarWidth: "none" }}>
+                {["전체", "💕 로맨스", "🧙 판타지", "✨ 현대판타지", "⚔️ 무협", "🔪 스릴러/호러", "🔍 미스터리", "🚀 SF", "🏙️ 현대물", "📜 역사", "💙 BL", "💜 GL"].map((g) => (
+                  <button key={g}
+                    style={{ flexShrink: 0, padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${exploreGenre === g ? "#7c3aed" : "#2d2040"}`, background: exploreGenre === g ? "#2d1f4e" : "#1a1228", color: exploreGenre === g ? "#c4b8ff" : "#7a6a8a", fontSize: 12, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.2s", whiteSpace: "nowrap" }}
+                    onClick={() => setExploreGenre(g)}>
+                    {g}
+                  </button>
+                ))}
+              </div>
+
+              {/* 최신/인기 + 결과 */}
               <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 16 }}>
                 <button className={`tab-btn${exploreTab === "latest" ? " active" : ""}`} onClick={() => setExploreTab("latest")}>🆕 최신</button>
                 <button className={`tab-btn${exploreTab === "popular" ? " active" : ""}`} onClick={() => setExploreTab("popular")}>🔥 인기</button>
@@ -1359,7 +1375,7 @@ ${prevContent}`;
               {publicNovels.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
-                  <div>아직 공개된 소설이 없어요</div>
+                  <div>{exploreGenre !== "전체" ? `${exploreGenre} 장르의 소설이 없어요` : "아직 공개된 소설이 없어요"}</div>
                 </div>
               ) : publicNovels.map((n) => <NovelCard key={n.id} n={n} />)}
             </div>
