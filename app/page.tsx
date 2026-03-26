@@ -310,20 +310,25 @@ export default function Home() {
   async function toggleSeriesLike(sd: Novel) {
     if (!user) { setShowAuth(true); return; }
     const eps = (sd as any)._episodes || [sd];
-    const firstEp = eps[0];
+    const allIds = eps.map((ep: Novel) => ep.id);
     const isLiked = !!(sd as any)._isLiked;
 
     // 즉시 UI 업데이트
     setSeriesDetail(prev => prev ? { ...prev, _isLiked: !isLiked, _likeCount: Math.max(0, ((prev as any)._likeCount || 0) + (isLiked ? -1 : 1)) } as any : prev);
 
-    // DB 업데이트
     if (isLiked) {
-      await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", firstEp.id);
+      // 이 시리즈의 모든 화에 대한 좋아요 삭제
+      await supabase.from("likes").delete().eq("user_id", user.id).in("novel_id", allIds);
     } else {
-      await supabase.from("likes").insert({ user_id: user.id, novel_id: firstEp.id }).select();
+      // 1화에 좋아요 추가 (이미 있으면 skip)
+      const firstId = eps[0]?.id;
+      if (firstId) {
+        const { data: existing } = await supabase.from("likes").select("user_id").eq("user_id", user.id).eq("novel_id", firstId);
+        if (!existing || existing.length === 0) {
+          await supabase.from("likes").insert({ user_id: user.id, novel_id: firstId });
+        }
+      }
     }
-
-    // 좋아한 작품 갱신
     fetchLikedNovels();
   }
 
@@ -364,16 +369,6 @@ export default function Home() {
   async function deleteComment(commentId: string) {
     await supabase.from("comments").delete().eq("id", commentId);
     if (readingNovel) fetchComments(readingNovel.id);
-  }
-
-  async function handleKakaoLogin() {
-    await supabase.auth.signInWithOAuth({
-      provider: "kakao",
-      options: {
-        redirectTo: window.location.origin,
-        scopes: "profile_nickname profile_image",
-      },
-    });
   }
 
   async function handleGoogleLogin() {
@@ -719,8 +714,9 @@ ${prevContent}`;
 
     const handleClick = async () => {
       const loadLikeInfo = async (epList: Novel[]) => {
-        const firstId = (epList[0] || n).id;
-        const { data: allLikes } = await supabase.from("likes").select("user_id").eq("novel_id", firstId);
+        // 모든 화의 novel_id로 좋아요 조회
+        const allIds = epList.map(ep => ep.id);
+        const { data: allLikes } = await supabase.from("likes").select("user_id, novel_id").in("novel_id", allIds);
         const totalCount = allLikes?.length || 0;
         const isLiked = user ? (allLikes || []).some((l: any) => l.user_id === user.id) : false;
         setSeriesDetail(prev => prev ? { ...prev, _isLiked: isLiked, _likeCount: totalCount } as any : prev);
@@ -882,23 +878,6 @@ ${prevContent}`;
               <div style={{ width: 36, height: 4, background: "#2d2040", borderRadius: 2, margin: "0 auto 24px" }} />
               <h2 style={{ marginBottom: 20, fontSize: 18, fontWeight: 600, textAlign: "center" }}>{authMode === "login" ? "로그인" : "회원가입"}</h2>
 
-              {/* 소셜 로그인 */}
-              <button style={{ width: "100%", padding: "13px", background: "#FEE500", border: "none", borderRadius: 10, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 15, fontWeight: 700, color: "#000", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-                onClick={handleKakaoLogin}>
-                💬 카카오로 시작하기
-              </button>
-              <button style={{ width: "100%", padding: "13px", background: "#fff", border: "1.5px solid #e0e0e0", borderRadius: 10, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 15, fontWeight: 600, color: "#333", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-                onClick={handleGoogleLogin}>
-                <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-                Google로 시작하기
-              </button>
-
-              {/* 구분선 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <div style={{ flex: 1, height: 1, background: "#2d2040" }} />
-                <span style={{ fontSize: 12, color: "#5a4a6a" }}>또는 이메일로</span>
-                <div style={{ flex: 1, height: 1, background: "#2d2040" }} />
-              </div>
 
               <input className="input-field" style={{ marginBottom: 10 }} type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} />
               <input className="input-field" style={{ marginBottom: 16 }} type="password" placeholder="비밀번호 (6자 이상)" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAuth(); }} />
