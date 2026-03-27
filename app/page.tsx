@@ -713,99 +713,11 @@ ${styleGuide}
             linear-gradient(160deg, #1a1130 0%, #120e1e 40%, #0e0b1a 100%);
         }
 
-        /* ── 배경: SVG 일러스트 레이어 ── */
-        body::after {
-          content: '';
-          position: fixed;
-          inset: 0;
-          z-index: 0;
-          pointer-events: none;
-          opacity: 1;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='860'%3E%3Cdefs%3E%3Cstyle%3E
-            .b%7Bfill:none;stroke:rgba(196,181,253,0.18);stroke-width:1.2;stroke-linecap:round%7D
-            .bf%7Bfill:rgba(196,181,253,0.06);stroke:rgba(196,181,253,0.15);stroke-width:1%7D
-            .s%7Bfill:rgba(255,255,255,0.7)%7D
-            .sm%7Bfill:rgba(255,255,255,0.4)%7D
-          %3C/style%3E%3C/defs%3E
-
-          %3C!-- 왼쪽 상단 책 묶음 --%3E
-          %3Crect class='bf' x='18' y='90' width='14' height='52' rx='2'/%3E
-          %3Crect class='bf' x='35' y='96' width='11' height='46' rx='2'/%3E
-          %3Crect class='bf' x='49' y='84' width='16' height='58' rx='2'/%3E
-          %3Crect class='bf' x='68' y='99' width='10' height='43' rx='2'/%3E
-
-          %3C!-- 오른쪽 상단 책 묶음 --%3E
-          %3Crect class='bf' x='390' y='60' width='14' height='48' rx='2'/%3E
-          %3Crect class='bf' x='407' y='66' width='11' height='42' rx='2'/%3E
-          %3Crect class='bf' x='421' y='54' width='16' height='54' rx='2'/%3E
-          %3Crect class='bf' x='440' y='69' width='10' height='39' rx='2'/%3E
-
-          %3C!-- 왼쪽 하단 책 --%3E
-          %3Crect class='bf' x='10' y='760' width='13' height='44' rx='2'/%3E
-          %3Crect class='bf' x='26' y='768' width='10' height='36' rx='2'/%3E
-          %3Crect class='bf' x='39' y='754' width='15' height='50' rx='2'/%3E
-
-          %3C!-- 오른쪽 하단 책 --%3E
-          %3Crect class='bf' x='420' y='790' width='13' height='44' rx='2'/%3E
-          %3Crect class='bf' x='436' y='798' width='10' height='36' rx='2'/%3E
-          %3Crect class='bf' x='449' y='784' width='15' height='50' rx='2'/%3E
-
-          %3C!-- 깃털 펜 (왼쪽) --%3E
-          %3Cpath class='b' d='M30 300 Q20 260 35 220 Q45 240 40 270 Q35 285 30 300Z'/%3E
-          %3Cpath class='b' d='M33 300 L33 340'/%3E
-          %3Cpath class='b' d='M20 250 Q33 255 45 248'/%3E
-          %3Cpath class='b' d='M18 265 Q33 270 48 263'/%3E
-
-          %3C!-- 깃털 펜 (오른쪽) --%3E
-          %3Cpath class='b' d='M450 480 Q460 440 445 400 Q435 420 440 450 Q445 465 450 480Z'/%3E
-          %3Cpath class='b' d='M447 480 L447 520'/%3E
-          %3Cpath class='b' d='M460 430 Q447 435 434 428'/%3E
-          %3Cpath class='b' d='M462 445 Q447 450 432 443'/%3E
-
-          %3C!-- 달 (오른쪽 상단) --%3E
-          %3Ccircle class='b' cx='455' cy='200' r='28' stroke='rgba(196,181,253,0.25)' fill='none'/%3E
-          %3Ccircle cx='465' cy='192' r='24' fill='%23120e1e' stroke='none'/%3E
-
-          %3C!-- 별들 --%3E
-          %3Ccircle class='s' cx='120' cy='45' r='1.5'/%3E
-          %3Ccircle class='sm' cx='200' cy='30' r='1'/%3E
-          %3Ccircle class='s' cx='350' cy='55' r='1.5'/%3E
-          %3Ccircle class='sm' cx='310' cy='25' r='1'/%3E
-          %3Ccircle class='s' cx='80' cy='400' r='1.2'/%3E
-          %3Ccircle class='sm' cx='400' cy='350' r='1'/%3E
-          %3Ccircle class='s' cx='15' cy='550' r='1.5'/%3E
-          %3Ccircle class='s' cx='465' cy='650' r='1.2'/%3E
-          %3Ccircle class='sm' cx='240' cy='820' r='1'/%3E
-          %3Ccircle class='s' cx='430' cy='730' r='1.5'/%3E
-
-          %3C!-- 곡선 넝쿨/라인 --%3E
-          %3Cpath class='b' d='M0 500 Q60 490 120 510 Q180 530 240 510 Q300 490 360 510 Q420 530 480 510' stroke-width='0.8'/%3E
-          %3Cpath class='b' d='M0 520 Q60 512 120 528 Q180 544 240 528' stroke-width='0.5' stroke-dasharray='4,6'/%3E
-
-          %3C!-- 작은 꽃 (왼쪽) --%3E
-          %3Ccircle class='bf' cx='15' cy='650' r='4'/%3E
-          %3Cellipse class='bf' cx='15' cy='643' rx='3' ry='5' transform='rotate(0 15 643)'/%3E
-          %3Cellipse class='bf' cx='22' cy='650' rx='3' ry='5' transform='rotate(90 22 650)'/%3E
-          %3Cellipse class='bf' cx='15' cy='657' rx='3' ry='5' transform='rotate(180 15 657)'/%3E
-          %3Cellipse class='bf' cx='8' cy='650' rx='3' ry='5' transform='rotate(270 8 650)'/%3E
-
-          %3C!-- 작은 꽃 (오른쪽) --%3E
-          %3Ccircle class='bf' cx='465' cy='300' r='4'/%3E
-          %3Cellipse class='bf' cx='465' cy='293' rx='3' ry='5'/%3E
-          %3Cellipse class='bf' cx='472' cy='300' rx='3' ry='5' transform='rotate(90 472 300)'/%3E
-          %3Cellipse class='bf' cx='465' cy='307' rx='3' ry='5' transform='rotate(180 465 307)'/%3E
-          %3Cellipse class='bf' cx='458' cy='300' rx='3' ry='5' transform='rotate(270 458 300)'/%3E
-
-          %3C!-- 잉크 방울 --%3E
-          %3Ccircle class='bf' cx='460' cy='560' r='3'/%3E
-          %3Cpath class='bf' d='M460 553 Q463 557 460 563 Q457 557 460 553Z'/%3E
-          %3Ccircle class='bf' cx='20' cy='200' r='2.5'/%3E
-          %3Cpath class='bf' d='M20 194 Q23 197 20 202 Q17 197 20 194Z'/%3E
-        %3C/svg%3E");
-          background-size: 480px 860px;
-          background-position: center top;
-          background-repeat: no-repeat;
-        }
+        /* ── 레이아웃 ── */
+        #app-root { position: relative; z-index: 1; }
+        .page-shell { width: 100%; max-width: 480px; margin: 0 auto; }
+        .fullscreen-overlay { position: fixed; inset: 0; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #120e1e; }
+        .fullscreen-inner { max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
 
         /* ── 레이아웃 ── */
         #app-root { position: relative; z-index: 1; }
@@ -946,18 +858,85 @@ ${styleGuide}
         @media (max-width: 480px) { .genre-grid { grid-template-columns: repeat(2, 1fr) !important; } }
       `}</style>
 
-      <div id="app-root" style={{ fontFamily: "'Noto Serif KR', serif", color: "#ede8f5", minHeight: "100vh", maxWidth: 480, margin: "0 auto", width: "100%" }}>
+      <div id="app-root" style={{ fontFamily: "'Noto Serif KR', serif", color: "#f0ecfc", minHeight: "100vh", maxWidth: 480, margin: "0 auto", width: "100%" }}>
+
+        {/* 배경 SVG 일러스트 */}
+        <svg style={{ position: "fixed", inset: 0, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none", opacity: 0.9 }} viewBox="0 0 480 860" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          {/* 책 묶음 왼쪽 상단 */}
+          <rect x="12" y="88" width="13" height="50" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
+          <rect x="28" y="94" width="10" height="44" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.18)" strokeWidth="1"/>
+          <rect x="41" y="82" width="15" height="56" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.18)" strokeWidth="1"/>
+          <rect x="59" y="97" width="9" height="41" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
+          {/* 책 묶음 오른쪽 상단 */}
+          <rect x="388" y="58" width="13" height="46" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
+          <rect x="404" y="64" width="10" height="40" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.18)" strokeWidth="1"/>
+          <rect x="417" y="52" width="15" height="52" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.18)" strokeWidth="1"/>
+          <rect x="435" y="67" width="9" height="37" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
+          {/* 책 묶음 왼쪽 하단 */}
+          <rect x="8" y="755" width="13" height="46" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
+          <rect x="24" y="763" width="10" height="38" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
+          <rect x="37" y="750" width="15" height="51" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.16)" strokeWidth="1"/>
+          {/* 책 묶음 오른쪽 하단 */}
+          <rect x="418" y="785" width="13" height="46" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
+          <rect x="434" y="793" width="10" height="38" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
+          <rect x="447" y="779" width="15" height="52" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.16)" strokeWidth="1"/>
+          {/* 깃털 펜 왼쪽 */}
+          <path d="M28 305 Q18 262 33 218 Q44 240 39 272 Q34 288 28 305Z" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.22)" strokeWidth="1.2" strokeLinecap="round"/>
+          <line x1="31" y1="305" x2="31" y2="342" stroke="rgba(196,181,253,0.18)" strokeWidth="1.2"/>
+          <path d="M18 252 Q31 257 44 250" fill="none" stroke="rgba(196,181,253,0.12)" strokeWidth="0.9"/>
+          <path d="M16 268 Q31 273 46 266" fill="none" stroke="rgba(196,181,253,0.12)" strokeWidth="0.9"/>
+          {/* 깃털 펜 오른쪽 */}
+          <path d="M452 485 Q462 442 447 400 Q436 422 441 455 Q446 470 452 485Z" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.22)" strokeWidth="1.2" strokeLinecap="round"/>
+          <line x1="449" y1="485" x2="449" y2="522" stroke="rgba(196,181,253,0.18)" strokeWidth="1.2"/>
+          <path d="M462 432 Q449 437 436 430" fill="none" stroke="rgba(196,181,253,0.12)" strokeWidth="0.9"/>
+          {/* 초승달 */}
+          <circle cx="452" cy="195" r="26" fill="none" stroke="rgba(196,181,253,0.22)" strokeWidth="1.2"/>
+          <circle cx="462" cy="187" r="22" fill="#120e1e" stroke="none"/>
+          {/* 별들 */}
+          <circle cx="118" cy="42" r="1.5" fill="rgba(255,255,255,0.75)"/>
+          <circle cx="198" cy="28" r="1" fill="rgba(255,255,255,0.45)"/>
+          <circle cx="348" cy="52" r="1.5" fill="rgba(255,255,255,0.7)"/>
+          <circle cx="308" cy="22" r="1" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="78" cy="398" r="1.2" fill="rgba(255,255,255,0.5)"/>
+          <circle cx="398" cy="348" r="1" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="14" cy="548" r="1.5" fill="rgba(255,255,255,0.6)"/>
+          <circle cx="463" cy="648" r="1.2" fill="rgba(255,255,255,0.5)"/>
+          <circle cx="238" cy="818" r="1" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="428" cy="728" r="1.5" fill="rgba(255,255,255,0.6)"/>
+          <circle cx="240" cy="145" r="1" fill="rgba(255,255,255,0.35)"/>
+          <circle cx="155" cy="680" r="1.2" fill="rgba(255,255,255,0.45)"/>
+          {/* 넝쿨 곡선 */}
+          <path d="M0 505 Q60 495 120 515 Q180 535 240 515 Q300 495 360 515 Q420 535 480 515" fill="none" stroke="rgba(196,181,253,0.1)" strokeWidth="0.9"/>
+          <path d="M0 522 Q60 514 120 530 Q180 546 240 530" fill="none" stroke="rgba(196,181,253,0.07)" strokeWidth="0.6" strokeDasharray="4 6"/>
+          {/* 작은 꽃 왼쪽 */}
+          <circle cx="14" cy="648" r="3.5" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.18)" strokeWidth="1"/>
+          <ellipse cx="14" cy="641" rx="2.5" ry="4.5" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
+          <ellipse cx="21" cy="648" rx="2.5" ry="4.5" transform="rotate(90 21 648)" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
+          <ellipse cx="14" cy="655" rx="2.5" ry="4.5" transform="rotate(180 14 655)" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
+          <ellipse cx="7" cy="648" rx="2.5" ry="4.5" transform="rotate(270 7 648)" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
+          {/* 작은 꽃 오른쪽 */}
+          <circle cx="463" cy="298" r="3.5" fill="rgba(244,114,182,0.07)" stroke="rgba(244,114,182,0.2)" strokeWidth="1"/>
+          <ellipse cx="463" cy="291" rx="2.5" ry="4.5" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
+          <ellipse cx="470" cy="298" rx="2.5" ry="4.5" transform="rotate(90 470 298)" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
+          <ellipse cx="463" cy="305" rx="2.5" ry="4.5" transform="rotate(180 463 305)" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
+          <ellipse cx="456" cy="298" rx="2.5" ry="4.5" transform="rotate(270 456 298)" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
+          {/* 잉크방울 */}
+          <circle cx="458" cy="558" r="3" fill="rgba(196,181,253,0.08)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
+          <path d="M458 551 Q461 555 458 561 Q455 555 458 551Z" fill="rgba(196,181,253,0.08)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
+          <circle cx="19" cy="198" r="2.5" fill="rgba(244,114,182,0.08)" stroke="rgba(244,114,182,0.2)" strokeWidth="1"/>
+          <path d="M19 192 Q22 196 19 200 Q16 196 19 192Z" fill="rgba(244,114,182,0.08)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
+        </svg>
 
         {/* 헤더 */}
-        <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(10,8,18,0.85)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(139,92,246,0.15)", padding: "0 16px" }}>
+        <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(18,14,30,0.88)", backdropFilter: "blur(18px)", borderBottom: "1px solid rgba(155,109,255,0.18)", padding: "0 16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 54 }}>
             <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }} onClick={() => { setView("create"); resetForm(); }}>
               <span style={{ fontSize: 22, fontFamily: "'Playfair Display', serif", fontWeight: 700 }}><span className="shimmer-text">Novella</span></span>
-              <span style={{ fontSize: 10, color: "#7a6a9a", letterSpacing: "0.2em" }}>노벨라</span>
+              <span style={{ fontSize: 10, color: "#8878b0", letterSpacing: "0.2em" }}>노벨라</span>
             </div>
             {user ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#b8aed0", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }} onClick={() => { setShowProfile(true); setNicknameInput(profile?.nickname || ""); }}>
+                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#cdc5e8", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }} onClick={() => { setShowProfile(true); setNicknameInput(profile?.nickname || ""); }}>
                   👤 {profile?.nickname || user.email?.split("@")[0]}
                 </button>
                 <button className="btn btn-outline" style={{ padding: "6px 10px", fontSize: 12 }} onClick={handleLogout}>로그아웃</button>
