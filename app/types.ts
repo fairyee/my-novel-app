@@ -14,6 +14,14 @@ export const AGE_OPTIONS = ["10대", "20대", "30대+", "나이 불명"];
 // 성별
 export const GENDER_OPTIONS = ["남성", "여성", "중성/불명"];
 
+// 캐릭터 관계
+export const RELATIONSHIP_OPTIONS = [
+  { id: "romance", label: "❤️ 로맨스" },
+  { id: "hate",    label: "💔 애증" },
+  { id: "rival",   label: "⚔️ 적대" },
+  { id: "ally",    label: "🤝 협력" },
+];
+
 // 장르별 태그 프리셋
 export const GENRE_TAGS: Record<string, string[]> = {
   romance: ["운명적 재회","계약 연애","소꿉친구","첫사랑","재벌×평민","신분차이","삼각관계","집착","츤데레","비밀연애","오해와 화해","직장 로맨스","학교생활","순정","빙의"],
@@ -45,17 +53,19 @@ export const BACKGROUNDS: Record<string, string[]> = {
   romance:  ["현대","캠퍼스","오피스","재벌가","궁정","이세계","역사"],
   bl:       ["현대","캠퍼스","오피스","연예계","군대","판타지","역사","오메가버스세계"],
   gl:       ["현대","캠퍼스","오피스","판타지","역사"],
-  fantasy:  ["이세계","마법왕국","SF·우주","현대판타지","역사배경","포스트아포칼립스"],
+  fantasy:  ["정통판타지","이세계","마법왕국","SF·우주","현대판타지","역사배경","포스트아포칼립스"],
   action:   ["무림","현대","전쟁터","암흑가","판타지"],
   thriller: ["현대도시","밀실","외딴곳","병원","학교"],
   drama:    ["현대","직장","학교","가족","해외"],
 };
 
 export const STYLES = [
-  { id: "lyrical",     label: "🌸 감성·문학적" },
-  { id: "fast",        label: "⚡ 빠른 전개" },
-  { id: "dialogue",    label: "💬 대화 위주" },
-  { id: "descriptive", label: "🎨 묘사 위주" },
+  { id: "emotional",  label: "💔 감정 몰입",    desc: "눈물나는 스타일" },
+  { id: "fast",       label: "🔥 자극적 전개",   desc: "몰아치는 전개" },
+  { id: "dialogue",   label: "💬 대사 중심",     desc: "웹소설 스타일" },
+  { id: "cinematic",  label: "🎬 드라마 느낌",   desc: "영상처럼 읽힘" },
+  { id: "webnovel",   label: "📱 웹소설 정통",   desc: "짧은 문장·몰입형" },
+  { id: "descriptive",label: "🎨 묘사 중심",     desc: "장면이 생생함" },
 ];
 
 export const ENDINGS = [
@@ -75,7 +85,7 @@ export const POVS = [
   { id: "third", label: "3인칭", desc: "그는..." },
 ];
 
-export interface Character { id: number; name: string; desc: string; role: string; age: string; gender: string; }
+export interface Character { id: number; name: string; desc: string; role: string; age: string; gender: string; relationship: string; }
 
 export interface Novel {
   id: string; title: string; content: string; genre: string; tags: string;

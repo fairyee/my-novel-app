@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "./lib/supabase";
-import { Novel, Profile, Comment, Character, GENRES, GENRE_TAGS, BACKGROUNDS, BL_ROLES, GL_ROLES, AGE_OPTIONS, GENDER_OPTIONS, STYLES, ENDINGS, RATINGS, POVS } from "./types";
+import { Novel, Profile, Comment, Character, GENRES, GENRE_TAGS, BACKGROUNDS, BL_ROLES, GL_ROLES, AGE_OPTIONS, GENDER_OPTIONS, RELATIONSHIP_OPTIONS, STYLES, ENDINGS, RATINGS, POVS } from "./types";
 import AuthModal from "./components/AuthModal";
 import NovelCard from "./components/NovelCard";
 import SeriesDetail from "./components/SeriesDetail";
@@ -54,17 +54,17 @@ export default function Home() {
   const [customTag, setCustomTag] = useState("");
   const [blRole, setBlRole] = useState<string | null>(null); // BL 공수
   const [glRole, setGlRole] = useState<string | null>(null);
-  const [style, setStyle] = useState<string | null>(null);
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]); // 문체 다중선택
   const [ending, setEnding] = useState<string | null>(null);
   const [rating, setRating] = useState("all");
   const [pov, setPov] = useState("third");
   const [title, setTitle] = useState("");
   const [seriesTitle, setSeriesTitle] = useState("");
-  const [synopsis, setSynopsis] = useState(""); // 사용자 줄거리 입력
-  const [generatedSynopsis, setGeneratedSynopsis] = useState(""); // AI 생성 작품소개
+  const [synopsis, setSynopsis] = useState("");
+  const [generatedSynopsis, setGeneratedSynopsis] = useState("");
   const [editingSynopsis, setEditingSynopsis] = useState(false);
-  const [customBackground, setCustomBackground] = useState(""); // 배경 직접 입력
-  const [characters, setCharacters] = useState<Character[]>([{ id: 1, name: "", desc: "", role: "주인공", age: "", gender: "" }]);
+  const [customBackground, setCustomBackground] = useState("");
+  const [characters, setCharacters] = useState<Character[]>([{ id: 1, name: "", desc: "", role: "주인공", age: "", gender: "", relationship: "" }]);
   const [isPublic, setIsPublic] = useState(false);
   const [currentSeriesId, setCurrentSeriesId] = useState<string | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState(1);
@@ -388,13 +388,14 @@ export default function Home() {
     const styleGuide = getStyleGuide();
     const charDesc = characters.filter(c => c.name || c.desc || c.age || c.gender).map(c => {
       const ageGender = [c.age, c.gender].filter(Boolean).join("/");
-      return `- ${c.role}${ageGender ? ` (${ageGender})` : ""} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`;
+      const rel = c.relationship ? ` [관계: ${c.relationship}]` : "";
+      return `- ${c.role}${ageGender ? ` (${ageGender})` : ""}${rel} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`;
     }).join("\n");
     const blGlInfo = genre === "bl" && blRole ? `BL 공수: ${BL_ROLES.find(r => r.id === blRole)?.label || ""}` :
                      genre === "gl" && glRole ? `GL 관계: ${GL_ROLES.find(r => r.id === glRole)?.label || ""}` : "";
     const backgroundInfo = [selectedBackground, customBackground].filter(Boolean).join(", ");
     const povLabel = pov === "first" ? "1인칭 (나는...)" : "3인칭 제한 시점";
-    const styleLabel = STYLES.find(s => s.id === style)?.label || "";
+    const styleLabel = selectedStyles.map(s => STYLES.find(st => st.id === s)?.label).filter(Boolean).join(" + ") || "";
     const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "";
 
     try {
@@ -691,12 +692,12 @@ ${styleGuide}
     setTitle(""); setSynopsis(""); setGeneratedSynopsis(""); setEditingSynopsis(false);
     setCoverImage(null); setCustomBackground("");
     setGenre(null); setSelectedBackground(null); setSelectedTags([]);
-    setBlRole(null); setGlRole(null); setStyle(null); setEnding(null);
+    setBlRole(null); setGlRole(null); setSelectedStyles([]); setEnding(null);
   }
 
   function toggleTag(tag: string) { setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]); }
   function addCustomTag() { const t = customTag.trim(); if (t && !selectedTags.includes(t)) setSelectedTags(prev => [...prev, t]); setCustomTag(""); }
-  function addCharacter() { if (characters.length < 5) setCharacters(prev => [...prev, { id: Date.now(), name: "", desc: "", role: "조연", age: "", gender: "" }]); }
+  function addCharacter() { if (characters.length < 5) setCharacters(prev => [...prev, { id: Date.now(), name: "", desc: "", role: "조연", age: "", gender: "", relationship: "" }]); }
   function removeCharacter(id: number) { setCharacters(prev => prev.filter(c => c.id !== id)); }
   function updateCharacter(id: number, field: keyof Character, value: string) { setCharacters(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c)); }
   function saveAsText() { const content = isEditing ? editedNovel : novel; const blob = new Blob([content], { type: "text/plain;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${seriesTitle || title || "소설"}_${currentEpisode}화.txt`; a.click(); URL.revokeObjectURL(url); }
@@ -1153,6 +1154,20 @@ ${styleGuide}
                               ))}
                             </div>
 
+                            {/* 주인공과의 관계 (2번째 캐릭터부터) */}
+                            {idx > 0 && (
+                              <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                                <div style={{ width: "100%", fontSize: 10, color: "#8878b0", marginBottom: 2 }}>주인공과의 관계</div>
+                                {RELATIONSHIP_OPTIONS.map(r => (
+                                  <button key={r.id}
+                                    style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${char.relationship === r.id ? accentColor : "#2e2048"}`, background: char.relationship === r.id ? "#2d1f4e" : "rgba(28,21,48,0.9)", color: char.relationship === r.id ? "#c4b8ff" : "#7a6a9a", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.15s" }}
+                                    onClick={() => updateCharacter(char.id, "relationship", char.relationship === r.id ? "" : r.id)}>
+                                    {r.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
                             {/* 특징 */}
                             <textarea className="input-field" rows={2}
                               placeholder={genre === "bl" ? "성격, 외모, 특징 (예: 차갑고 도도한 재벌 3세)" : "성격, 외모, 특징"}
@@ -1187,14 +1202,24 @@ ${styleGuide}
                       </div>
 
                       <div className="section">
-                        <div className="section-title">문체</div>
+                        <div className="section-title">문체 (최대 2개 선택)</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {STYLES.map(s => (
-                            <button key={s.id} className={`opt-btn${style === s.id ? " selected" : ""}`}
-                              style={{ ...(style === s.id ? { borderColor: accentColor } : {}), flex: "1 1 40%" }}
-                              onClick={() => setStyle(style === s.id ? null : s.id)}>{s.label}</button>
-                          ))}
+                          {STYLES.map(s => {
+                            const selected = selectedStyles.includes(s.id);
+                            return (
+                              <button key={s.id}
+                                style={{ flex: "1 1 40%", border: `1.5px solid ${selected ? accentColor : "#332860"}`, background: selected ? "rgba(155,109,255,0.18)" : "rgba(255,255,255,0.04)", color: selected ? "#d4bfff" : "#cdc5e8", borderRadius: 12, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s", textAlign: "center" }}
+                                onClick={() => {
+                                  if (selected) setSelectedStyles(prev => prev.filter(id => id !== s.id));
+                                  else if (selectedStyles.length < 2) setSelectedStyles(prev => [...prev, s.id]);
+                                }}>
+                                <div>{s.label}</div>
+                                <div style={{ fontSize: 10, color: selected ? "#a78bfa" : "#8878b0", marginTop: 2 }}>{s.desc}</div>
+                              </button>
+                            );
+                          })}
                         </div>
+                        {selectedStyles.length >= 2 && <div style={{ fontSize: 11, color: "#8878b0", marginTop: 6, textAlign: "center" }}>최대 2개까지 선택 가능해요</div>}
                       </div>
 
                       <div className="section">
@@ -1297,6 +1322,7 @@ ${styleGuide}
                           )}
                         </div>
                       )}
+                      <div style={{ margin: "14px 0", padding: "12px 14px", background: "rgba(19,16,32,0.8)", borderRadius: 10, border: "1px solid #2e2048" }}>
                         <div style={{ fontSize: 12, color: "#7a6a9a", marginBottom: 8 }}>🖼️ 시리즈 커버 이미지</div>
                         {coverImage ? (
                           <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
