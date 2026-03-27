@@ -1,5 +1,7 @@
 "use client";
+import { useState } from "react";
 import { Novel } from "../types";
+import { createClient } from "../lib/supabase";
 
 interface SeriesDetailProps {
   seriesDetail: Novel;
@@ -22,26 +24,31 @@ export default function SeriesDetail({
   onBack, onOpenEpisode, onToggleFavorite, onToggleSeriesPublic,
   onUploadCover, onContinueFromLibrary, onEditFromLibrary, onShowDeleteModal, setSeriesDetail,
 }: SeriesDetailProps) {
+  const supabase = createClient();
   const isMine = !!(seriesDetail as any)._isMine;
   const eps = seriesDetail._episodes || [];
   const lastEp = eps[eps.length - 1];
   const allPublic = eps.every(ep => ep.is_public);
   const sid = seriesDetail.series_id || seriesDetail.id;
 
+  const [editingSynopsis, setEditingSynopsis] = useState(false);
+  const [synopsisInput, setSynopsisInput] = useState(seriesDetail.synopsis || "");
+  const [synopsisSaving, setSynopsisSaving] = useState(false);
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(10,8,18,1)", zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+    <div style={{ position: "fixed", inset: 0, background: "#120e1e", zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
       <div style={{ maxWidth: 480, margin: "0 auto", paddingBottom: 40 }}>
 
         {/* 헤더 */}
-        <div style={{ position: "sticky", top: 0, background: "rgba(10,8,18,1)cc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", alignItems: "center", borderBottom: "1px solid #2e2048", zIndex: 10 }}>
+        <div style={{ position: "sticky", top: 0, background: "#120e1ecc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", alignItems: "center", borderBottom: "1px solid #2e2048", zIndex: 10 }}>
           <button style={{ background: "none", border: "none", color: "#a89ec0", fontSize: 14, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }} onClick={onBack}>← 뒤로</button>
         </div>
 
         {/* 커버 */}
         {seriesDetail.cover_image && (
-          <div style={{ width: "100%", background: "rgba(10,8,18,1)", display: "flex", justifyContent: "center", position: "relative" }}>
+          <div style={{ width: "100%", background: "#120e1e", display: "flex", justifyContent: "center", position: "relative" }}>
             <img src={seriesDetail.cover_image} alt={seriesDetail.series_title || seriesDetail.title} style={{ width: "100%", maxHeight: 400, objectFit: "contain" }} />
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80, background: "linear-gradient(to bottom, transparent, rgba(10,8,18,1))" }} />
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 80, background: "linear-gradient(to bottom, transparent, #120e1e)" }} />
           </div>
         )}
 
@@ -68,12 +75,38 @@ export default function SeriesDetail({
           )}
 
           {/* 작품 소개 */}
-          {seriesDetail.synopsis && (
-            <div style={{ background: "rgba(19,16,32,0.85)", borderRadius: 12, padding: "16px", marginBottom: 24, border: "1px solid #2e2048" }}>
-              <div style={{ fontSize: 12, color: "#7a6a9a", marginBottom: 8, fontWeight: 600 }}>작품 소개</div>
-              <div style={{ fontSize: 14, color: "#b8aed0", lineHeight: 1.9 }}>{seriesDetail.synopsis}</div>
+          <div style={{ background: "rgba(19,16,32,0.85)", borderRadius: 12, padding: "16px", marginBottom: 24, border: "1px solid #2e2048" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: "#7a6a9a", fontWeight: 600 }}>작품 소개</div>
+              {isMine && (
+                <button
+                  style={{ background: "none", border: "none", color: "#8878b0", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}
+                  onClick={async () => {
+                    if (editingSynopsis) {
+                      setSynopsisSaving(true);
+                      await supabase.from("novels").update({ synopsis: synopsisInput }).eq("series_id", sid);
+                      if (!seriesDetail.series_id) await supabase.from("novels").update({ synopsis: synopsisInput }).eq("id", sid);
+                      setSeriesDetail({ ...seriesDetail, synopsis: synopsisInput });
+                      setSynopsisSaving(false);
+                    }
+                    setEditingSynopsis(!editingSynopsis);
+                  }}>
+                  {synopsisSaving ? "저장 중..." : editingSynopsis ? "✅ 완료" : "✏️ 수정"}
+                </button>
+              )}
             </div>
-          )}
+            {editingSynopsis ? (
+              <textarea
+                style={{ width: "100%", background: "rgba(28,21,48,0.9)", border: "1.5px solid #332860", borderRadius: 8, padding: "10px 12px", color: "#f0ecfc", fontFamily: "'Noto Serif KR', serif", fontSize: 13, lineHeight: 1.9, resize: "vertical", outline: "none", minHeight: 80 }}
+                value={synopsisInput}
+                onChange={e => setSynopsisInput(e.target.value)}
+              />
+            ) : (
+              <div style={{ fontSize: 14, color: "#b8aed0", lineHeight: 1.9 }}>
+                {synopsisInput || <span style={{ color: "#5a4a6a" }}>작품 소개가 없어요. 수정 버튼으로 추가해보세요.</span>}
+              </div>
+            )}
+          </div>
 
           {/* 내 작품 전용 버튼들 */}
           {isMine && (

@@ -351,41 +351,53 @@ export default function Home() {
     setTimeout(() => setSaveMsg(""), 3000);
   }
 
-  // 장르별 금지/필수 표현 프리셋
   function getStyleGuide() {
+    const styleMap: Record<string, string> = {
+      emotional:   "- 감정의 밀도를 높여라. 인물의 내면을 행동과 감각으로 보여줄 것\n- 침묵, 망설임, 시선 회피로 감정을 전달할 것\n- 독자가 같이 아파하거나 설레게 만들 것",
+      fast:        "- 장면 전환을 빠르게, 문장을 짧게\n- 매 단락 끝에 긴장 또는 궁금증을 남길 것\n- 사건이 연속으로 터지는 구조로",
+      dialogue:    "- 대사 비중을 70% 이상으로\n- 대사로 감정, 갈등, 관계 변화를 보여줄 것\n- 인물마다 말투를 다르게 구분할 것",
+      cinematic:   "- 장면을 카메라로 촬영하듯 묘사할 것\n- 클로즈업(표정, 손끝), 풀샷(공간) 번갈아 사용\n- 배경음, 조명, 날씨로 분위기 강화",
+      lyrical:     "- 비유와 이미지로 감정을 시처럼 표현할 것\n- 문장 리듬을 의식하며 쓸 것\n- 디테일 하나에 큰 감정을 담을 것",
+      descriptive: "- 공간과 감각(소리, 냄새, 온도)을 풍부하게\n- 인물의 표정과 몸짓을 세밀하게\n- 독자가 장면 속에 있는 느낌이 들게",
+    };
+    const selectedStyleGuides = selectedStyles.map(s => styleMap[s]).filter(Boolean).join("\n");
+
     const base = `
+[문체 방향]
+${selectedStyleGuides || "- 자연스럽고 읽기 좋은 한국 웹소설 문체로"}
+
 [절대 금지]
 - "숨이 멎을 듯했다", "눈물이 차올랐다", "가슴이 두근거렸다" 같은 상투적 감정 표현
-- 감정을 직접 해설하는 문장 ("그녀는 슬펐다", "그는 설레었다")
-- 웹툰식 가벼운 대사체 ("헉!", "어머?!", "세상에나")
-- 장면 요약식 전개 ("그렇게 시간이 흘렀다")
-- 인물 감정 반복 설명
-- 과한 독백
-- 마크다운, 소제목, 별표
+- 감정 직접 해설 ("그녀는 슬펐다", "그는 설레었다")
+- "헉!", "어머?!", "세상에나" 같은 만화체
+- "그렇게 시간이 흘렀다" 같은 요약 전개
+- 마크다운, 소제목, 별표, 번호 매기기
 
 [반드시 지킬 것]
-- 감정은 행동, 시선, 침묵, 선택으로 보여줄 것
-- 각 장면엔 목적과 긴장이 있어야 함
+- 첫 문장부터 장면 한복판으로 바로 들어갈 것
+- 각 장면은 목적 + 장애물 구조로
 - 대사 뒤 감정 해설 최소화
-- 문장은 짧고 선명하게, 리듬감 있게
-- 첫 문단부터 장면 안으로 바로 들어갈 것`;
+- 문장은 짧고 선명하게, 단락 리듬감 있게
+- 인물의 이름이나 외모 설명을 자연스럽게 녹일 것`;
 
     const genreGuides: Record<string, string> = {
-      "💕 로맨스": "\n[로맨스 특화]\n- 감정은 절제할수록 강해짐. 설레임을 직접 쓰지 말 것\n- 두 인물 사이의 긴장은 말보다 거리, 시선, 손끝으로",
-      "🧙 판타지": "\n[판타지 특화]\n- 세계관 설명을 장면 안에 자연스럽게 녹일 것\n- 마법/능력은 설명하지 말고 보여줄 것",
-      "⚔️ 무협": "\n[무협 특화]\n- 전투는 심리전으로. 기술 나열 금지\n- 의리, 복수, 명예의 무게를 행동으로",
-      "🔪 스릴러/호러": "\n[스릴러 특화]\n- 공포는 직접 묘사보다 암시로\n- 긴장은 정보의 비대칭에서 나옴",
-      "🔍 미스터리": "\n[미스터리 특화]\n- 단서는 자연스럽게 심어둘 것\n- 독자가 먼저 눈치채게 유도",
+      "로맨스": "\n[로맨스 특화]\n- 두 인물 사이 긴장은 거리, 시선, 침묵, 손끝으로\n- 설레임은 절제할수록 강해짐\n- 오해나 엇갈림이 있어야 더 재밌음",
+      "BL":     "\n[BL 특화]\n- 공수 관계의 미묘한 심리 묘사에 집중\n- 감정 변화를 섬세하게, 직접 표현보다 암시로\n- 두 남자 사이의 긴장감과 끌림을 행동으로",
+      "GL":     "\n[GL 특화]\n- 두 여성 사이의 감정선을 섬세하게\n- 일상 속 작은 순간들에서 감정이 쌓이게\n- 직접적 고백보다 눈빛과 행동으로",
+      "판타지": "\n[판타지 특화]\n- 세계관은 장면 속에 자연스럽게 녹일 것 (설명 금지)\n- 마법/능력은 보여줄 것, 설명하지 말 것\n- 이세계 감각(냄새, 색깔, 소리)을 구체적으로",
+      "액션":   "\n[액션 특화]\n- 전투는 심리전이 먼저, 기술 나열 금지\n- 타격감을 짧은 문장으로\n- 의리, 복수, 명예의 무게를 행동으로",
+      "공포":   "\n[공포 특화]\n- 공포는 직접 묘사보다 암시와 여운으로\n- 정보 비대칭이 긴장감을 만듦\n- 평범한 것의 이상함을 포착할 것",
+      "드라마": "\n[드라마 특화]\n- 인물 간 관계 변화가 핵심\n- 현실감 있는 대사와 갈등\n- 감정이 폭발하기 직전 절제된 장면으로 쌓아갈 것",
     };
 
     const genreLabel = selectedGenre?.label || "";
-    const genreExtra = Object.entries(genreGuides).find(([k]) => genreLabel.includes(k.slice(2)))?.[1] || "";
+    const genreExtra = Object.entries(genreGuides).find(([k]) => genreLabel.includes(k))?.[1] || "";
     return base + genreExtra;
   }
 
   // ── 하루 생성 횟수 체크 ────────────────────────────────
   function checkAndIncrementCount(): boolean {
-    if (user) return true; // 로그인 시 무제한
+    if (user) return true;
     const today = new Date().toDateString();
     const stored = localStorage.getItem("novella_gen");
     const data = stored ? JSON.parse(stored) : { date: today, count: 0 };
@@ -404,67 +416,69 @@ export default function Home() {
     }
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false); setSaveMsg("");
 
-    const ratingLabel = rating === "all" ? "전체가" : rating === "teen" ? "15세 이상" : "성인 (암시 포함)";
+    const ratingLabel = rating === "all" ? "전체 (순애, 자극적 표현 없음)" : "성인 (19+, 암시적 표현 허용)";
     const styleGuide = getStyleGuide();
     const charDesc = characters.filter(c => c.name || c.desc || c.age || c.gender).map(c => {
       const ageGender = [c.age, c.gender].filter(Boolean).join("/");
-      const rel = c.relationship ? ` [관계: ${c.relationship}]` : "";
-      return `- ${c.role}${ageGender ? ` (${ageGender})` : ""}${rel} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`;
+      const rel = c.relationship ? ` [주인공과의 관계: ${RELATIONSHIP_OPTIONS.find(r => r.id === c.relationship)?.label || c.relationship}]` : "";
+      return `- ${c.role}${ageGender ? ` (${ageGender})` : ""}${rel} | 이름: ${c.name || "AI가 정할 것"} | 특징: ${c.desc || "설정없음"}`;
     }).join("\n");
-    const blGlInfo = genre === "bl" && blRole ? `BL 공수: ${BL_ROLES.find(r => r.id === blRole)?.label || ""}` :
-                     genre === "gl" && glRole ? `GL 관계: ${GL_ROLES.find(r => r.id === glRole)?.label || ""}` : "";
+    const blGlInfo = genre === "bl" && blRole ? `BL 공수 설정: ${BL_ROLES.find(r => r.id === blRole)?.label || ""}` :
+                     genre === "gl" && glRole ? `GL 관계 설정: ${GL_ROLES.find(r => r.id === glRole)?.label || ""}` : "";
     const backgroundInfo = [selectedBackground, customBackground].filter(Boolean).join(", ");
-    const povLabel = pov === "first" ? "1인칭 (나는...)" : "3인칭 제한 시점";
-    const styleLabel = selectedStyles.map(s => STYLES.find(st => st.id === s)?.label).filter(Boolean).join(" + ") || "";
+    const povLabel = pov === "first" ? "1인칭 (나는...)" : "3인칭 제한 시점 (그는/그녀는...)";
     const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "";
 
     try {
       // ── 1단계: 회차 설계 ──────────────────────────────
-      const planPrompt = `너는 장르소설 회차 설계 전문가다. 아래 정보를 바탕으로 이번 화 설계를 해라.
+      const planPrompt = `너는 한국 장르소설 회차 설계 전문가다.
 
 <작품정보>
-${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
-${title ? `이번 화 제목: ${title}` : ""}
 장르: ${selectedGenre?.label || "자유"}
-태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
+${seriesTitle ? `시리즈 제목: ${seriesTitle}` : ""}
+${title ? `이번 화 제목 힌트: ${title}` : ""}
+태그/클리셰: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
 ${backgroundInfo ? `배경: ${backgroundInfo}` : ""}
 ${blGlInfo}
-${styleLabel ? `문체 방향: ${styleLabel}` : ""}
-${endingLabel ? `결말 방향: ${endingLabel}` : ""}
+결말 방향: ${endingLabel || "자유"}
 수위: ${ratingLabel}
 시점: ${povLabel}
-${synopsis ? `줄거리/배경: ${synopsis}` : ""}
+${synopsis ? `작가 메모 (줄거리): ${synopsis}` : ""}
 ${charDesc ? `등장인물:\n${charDesc}` : ""}
 </작품정보>
 
-아래 형식으로만 출력해라:
-1. 이번 화 핵심 목표 (독자에게 전달할 감정/사건 1줄)
-2. 장면 구성 3~4개 (각 장면: 누가/어디서/무엇을 원함/무엇이 막음)
-3. 감정 흐름 (시작감정 → 중간변화 → 끝감정)
-4. 마지막 훅 한 줄 (다음 화를 보게 만드는 문장 아이디어)
-5. 절대 쓰면 안 되는 전개 2가지`;
+위 정보를 바탕으로 이번 화를 설계해라. 아래 형식으로만 출력:
 
-      const planRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: planPrompt, tokens: 600 }) });
+1. 핵심 감정 목표: (독자가 이 화를 읽고 느껴야 할 감정 1가지)
+2. 오프닝 훅: (첫 문단을 어떻게 시작할지 — 독자를 즉시 끌어당기는 장면/상황)
+3. 장면 구성:
+   - 장면1: [장소] [상황] [인물이 원하는 것] [방해 요소] [시작 문장 아이디어]
+   - 장면2: [장소] [상황] [인물이 원하는 것] [방해 요소] [시작 문장 아이디어]
+   - 장면3: [장소] [상황] [감정 클라이맥스]
+4. 감정 흐름: 시작감정 → 전환점 → 끝감정
+5. 마지막 문장 아이디어: (다음 화가 보고 싶어지는 훅)
+6. 절대 쓰면 안 되는 전개: (진부하거나 이 이야기와 안 맞는 것 2가지)`;
+
+      const planRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: planPrompt, tokens: 800 }) });
       const planData = await planRes.json();
       if (planData.error) throw new Error(planData.error);
       const episodePlan = planData.text;
 
       // ── 2단계: 본문 집필 ──────────────────────────────
-      const writePrompt = `너는 한국 장르소설 전문 작가다. 아래 회차 설계를 바탕으로 실제 소설 본문을 써라.
+      const writePrompt = `너는 한국 장르소설 전문 작가다. 독자를 사로잡는 웹소설을 써라.
 
 <회차설계>
 ${episodePlan}
 </회차설계>
 
 <작품정보>
-${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
-${title ? `이번 화 제목: ${title}` : ""}
 장르: ${selectedGenre?.label || "자유"}
+${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
 태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
 ${backgroundInfo ? `배경: ${backgroundInfo}` : ""}
 시점: ${povLabel}
 수위: ${ratingLabel}
-${synopsis ? `줄거리/배경: ${synopsis}` : ""}
+${synopsis ? `작가 메모: ${synopsis}` : ""}
 ${charDesc ? `등장인물:\n${charDesc}` : ""}
 </작품정보>
 
@@ -473,11 +487,13 @@ ${styleGuide}
 </문체규칙>
 
 <출력규칙>
-- 이번 화 제목은 웹소설 감성으로 세련되고 매력적으로 (예: "그 계절의 온도", "달이 지는 쪽으로", "당신의 봄이 되고 싶었다")
-- 제목을 첫 줄에 쓰고 한 줄 띄운 뒤 본문 시작
-- 분량: 1800자 이상
+- 제목: 웹소설 감성으로 세련되게 (예: "그 계절의 온도", "달이 지는 쪽으로", "오늘 밤만 네 곁에")
+- 제목 한 줄 → 빈 줄 → 본문 시작
+- 분량: 2000자 이상 (더 길수록 좋음)
+- 오프닝: 행동이나 대사로 바로 시작. "그날은", "그녀는 태어나서" 같은 배경 설명 금지
+- 이름이 없는 캐릭터는 어울리는 이름을 AI가 직접 정해서 쓸 것
 - 반드시 완성된 문장으로 끝낼 것
-- 소설 본문만 출력. 설명, 해설, 메모 금지
+- 소설 본문만 출력. 메모, 설명, 해설 절대 금지
 </출력규칙>`;
 
       const writeRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: writePrompt, tokens: 4000 }) });
@@ -1080,7 +1096,29 @@ ${styleGuide}
                           {GENRES.map(g => (
                             <button key={g.id}
                               style={{ border: `1.5px solid ${genre === g.id ? g.color : "#2e2048"}`, background: genre === g.id ? "#221738" : "rgba(28,21,48,0.9)", color: genre === g.id ? "#fff" : "#b8aed0", borderRadius: 12, padding: "12px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, transition: "all 0.2s", boxShadow: genre === g.id ? `0 0 12px ${g.color}44` : "none" }}
-                              onClick={() => { setGenre(genre === g.id ? null : g.id); setSelectedTags([]); setSelectedBackground(null); setBlRole(null); setGlRole(null); }}>
+                              onClick={() => {
+                                const newGenre = genre === g.id ? null : g.id;
+                                setGenre(newGenre);
+                                setSelectedTags([]); setSelectedBackground(null); setBlRole(null); setGlRole(null);
+                                if (newGenre === "bl") {
+                                  setCharacters([
+                                    { id: 1, name: "", desc: "", role: "공", age: "", gender: "", relationship: "" },
+                                    { id: 2, name: "", desc: "", role: "수", age: "", gender: "", relationship: "" },
+                                  ]);
+                                } else if (newGenre === "romance") {
+                                  setCharacters([
+                                    { id: 1, name: "", desc: "", role: "여주", age: "", gender: "여성", relationship: "" },
+                                    { id: 2, name: "", desc: "", role: "남주", age: "", gender: "남성", relationship: "" },
+                                  ]);
+                                } else if (newGenre === "gl") {
+                                  setCharacters([
+                                    { id: 1, name: "", desc: "", role: "주인공1", age: "", gender: "", relationship: "" },
+                                    { id: 2, name: "", desc: "", role: "주인공2", age: "", gender: "", relationship: "" },
+                                  ]);
+                                } else if (newGenre) {
+                                  setCharacters([{ id: 1, name: "", desc: "", role: "주인공", age: "", gender: "", relationship: "" }]);
+                                }
+                              }}>
                               {g.label}
                             </button>
                           ))}
@@ -1170,7 +1208,7 @@ ${styleGuide}
                                 <span style={{ background: "rgba(45,31,78,0.9)", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Noto Serif KR', serif" }}
                                   onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>{char.role} ↕</span>
                               )}
-                              <input className="input-field" style={{ flex: 1 }} placeholder="이름 (선택)" value={char.name} onChange={e => updateCharacter(char.id, "name", e.target.value)} />
+                              <input className="input-field" style={{ flex: 1 }} placeholder="이름 (비우면 AI가 정해요)" value={char.name} onChange={e => updateCharacter(char.id, "name", e.target.value)} />
                               {idx > 0 && <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif", flexShrink: 0 }} onClick={() => removeCharacter(char.id)}>삭제</button>}
                             </div>
 
