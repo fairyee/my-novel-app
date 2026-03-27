@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Novella - AI 웹소설 생성기",
     description: "장르, 캐릭터, 태그만 고르면 AI가 웹소설을 써드려요. 무료로 시작해보세요.",
-    url: "https://my-novel-k4v89rnc5-fairyees-projects.vercel.app",
+    url: "https://my-novel-app-omega.vercel.app",
     siteName: "Novella",
     type: "website",
     locale: "ko_KR",
