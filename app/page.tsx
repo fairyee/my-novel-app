@@ -693,45 +693,137 @@ ${styleGuide}
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-          background: #0a0812;
+          background: #120e1e;
           min-height: 100vh;
           overflow-x: hidden;
         }
 
-        /* ── 배경 일러스트 (SVG 패턴) ── */
+        /* ── 배경: 그라데이션 분위기 레이어 ── */
         body::before {
           content: '';
           position: fixed;
           inset: 0;
           z-index: 0;
           pointer-events: none;
-          background-image:
-            radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124,58,237,0.13) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 50% at 85% 90%, rgba(244,114,182,0.10) 0%, transparent 55%),
-            radial-gradient(ellipse 40% 40% at 70% 30%, rgba(167,139,250,0.07) 0%, transparent 50%),
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cdefs%3E%3Cstyle%3E.s%7Bfill:none;stroke:rgba(167,139,250,0.07);stroke-width:1%7D%3C/style%3E%3C/defs%3E%3C!-- 책 모양들 --%3E%3Crect class='s' x='40' y='120' width='28' height='38' rx='2'/%3E%3Crect class='s' x='72' y='128' width='20' height='30' rx='2'/%3E%3Crect class='s' x='96' y='115' width='24' height='43' rx='2'/%3E%3Crect class='s' x='750' y='60' width='28' height='38' rx='2'/%3E%3Crect class='s' x='782' y='68' width='20' height='30' rx='2'/%3E%3Crect class='s' x='806' y='55' width='24' height='43' rx='2'/%3E%3Crect class='s' x='60' y='700' width='28' height='38' rx='2'/%3E%3Crect class='s' x='92' y='708' width='20' height='30' rx='2'/%3E%3Crect class='s' x='116' y='695' width='24' height='43' rx='2'/%3E%3Crect class='s' x='780' y='780' width='28' height='38' rx='2'/%3E%3Crect class='s' x='812' y='788' width='20' height='30' rx='2'/%3E%3C!-- 별 모양들 --%3E%3Ccircle class='s' cx='200' cy='80' r='2'/%3E%3Ccircle class='s' cx='600' cy='40' r='1.5'/%3E%3Ccircle class='s' cx='820' cy='200' r='2'/%3E%3Ccircle class='s' cx='150' cy='450' r='1.5'/%3E%3Ccircle class='s' cx='700' cy='500' r='2'/%3E%3Ccircle class='s' cx='400' cy='850' r='1.5'/%3E%3Ccircle class='s' cx='850' cy='600' r='2'/%3E%3C!-- 깃털 펜 --%3E%3Cpath class='s' d='M500 200 Q520 160 540 140 Q530 160 510 200 Q520 185 530 170'/%3E%3Cpath class='s' d='M100 350 Q120 310 140 290 Q130 310 110 350 Q120 335 130 320'/%3E%3Cpath class='s' d='M780 400 Q800 360 820 340 Q810 360 790 400'/%3E%3C!-- 달 --%3E%3Ccircle class='s' cx='830' cy='130' r='25'/%3E%3Ccircle cx='845' cy='120' r='22' fill='%230a0812' stroke='none'/%3E%3C!-- 넝쿨 라인 --%3E%3Cpath class='s' d='M0 600 Q100 580 200 600 Q300 620 400 600 Q500 580 600 600'/%3E%3Cpath class='s' d='M300 0 Q320 100 300 200 Q280 300 300 400'/%3E%3C/svg%3E");
-          background-size: cover, cover, cover, 900px 900px;
+          background:
+            radial-gradient(ellipse 90% 55% at 15% 0%,   rgba(109,40,217,0.28) 0%, transparent 55%),
+            radial-gradient(ellipse 70% 50% at 90% 100%, rgba(219,39,119,0.18) 0%, transparent 55%),
+            radial-gradient(ellipse 55% 45% at 80% 15%,  rgba(139,92,246,0.14) 0%, transparent 50%),
+            radial-gradient(ellipse 40% 40% at 10% 80%,  rgba(167,139,250,0.10) 0%, transparent 50%),
+            linear-gradient(160deg, #1a1130 0%, #120e1e 40%, #0e0b1a 100%);
+        }
+
+        /* ── 배경: SVG 일러스트 레이어 ── */
+        body::after {
+          content: '';
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          opacity: 1;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='860'%3E%3Cdefs%3E%3Cstyle%3E
+            .b%7Bfill:none;stroke:rgba(196,181,253,0.18);stroke-width:1.2;stroke-linecap:round%7D
+            .bf%7Bfill:rgba(196,181,253,0.06);stroke:rgba(196,181,253,0.15);stroke-width:1%7D
+            .s%7Bfill:rgba(255,255,255,0.7)%7D
+            .sm%7Bfill:rgba(255,255,255,0.4)%7D
+          %3C/style%3E%3C/defs%3E
+
+          %3C!-- 왼쪽 상단 책 묶음 --%3E
+          %3Crect class='bf' x='18' y='90' width='14' height='52' rx='2'/%3E
+          %3Crect class='bf' x='35' y='96' width='11' height='46' rx='2'/%3E
+          %3Crect class='bf' x='49' y='84' width='16' height='58' rx='2'/%3E
+          %3Crect class='bf' x='68' y='99' width='10' height='43' rx='2'/%3E
+
+          %3C!-- 오른쪽 상단 책 묶음 --%3E
+          %3Crect class='bf' x='390' y='60' width='14' height='48' rx='2'/%3E
+          %3Crect class='bf' x='407' y='66' width='11' height='42' rx='2'/%3E
+          %3Crect class='bf' x='421' y='54' width='16' height='54' rx='2'/%3E
+          %3Crect class='bf' x='440' y='69' width='10' height='39' rx='2'/%3E
+
+          %3C!-- 왼쪽 하단 책 --%3E
+          %3Crect class='bf' x='10' y='760' width='13' height='44' rx='2'/%3E
+          %3Crect class='bf' x='26' y='768' width='10' height='36' rx='2'/%3E
+          %3Crect class='bf' x='39' y='754' width='15' height='50' rx='2'/%3E
+
+          %3C!-- 오른쪽 하단 책 --%3E
+          %3Crect class='bf' x='420' y='790' width='13' height='44' rx='2'/%3E
+          %3Crect class='bf' x='436' y='798' width='10' height='36' rx='2'/%3E
+          %3Crect class='bf' x='449' y='784' width='15' height='50' rx='2'/%3E
+
+          %3C!-- 깃털 펜 (왼쪽) --%3E
+          %3Cpath class='b' d='M30 300 Q20 260 35 220 Q45 240 40 270 Q35 285 30 300Z'/%3E
+          %3Cpath class='b' d='M33 300 L33 340'/%3E
+          %3Cpath class='b' d='M20 250 Q33 255 45 248'/%3E
+          %3Cpath class='b' d='M18 265 Q33 270 48 263'/%3E
+
+          %3C!-- 깃털 펜 (오른쪽) --%3E
+          %3Cpath class='b' d='M450 480 Q460 440 445 400 Q435 420 440 450 Q445 465 450 480Z'/%3E
+          %3Cpath class='b' d='M447 480 L447 520'/%3E
+          %3Cpath class='b' d='M460 430 Q447 435 434 428'/%3E
+          %3Cpath class='b' d='M462 445 Q447 450 432 443'/%3E
+
+          %3C!-- 달 (오른쪽 상단) --%3E
+          %3Ccircle class='b' cx='455' cy='200' r='28' stroke='rgba(196,181,253,0.25)' fill='none'/%3E
+          %3Ccircle cx='465' cy='192' r='24' fill='%23120e1e' stroke='none'/%3E
+
+          %3C!-- 별들 --%3E
+          %3Ccircle class='s' cx='120' cy='45' r='1.5'/%3E
+          %3Ccircle class='sm' cx='200' cy='30' r='1'/%3E
+          %3Ccircle class='s' cx='350' cy='55' r='1.5'/%3E
+          %3Ccircle class='sm' cx='310' cy='25' r='1'/%3E
+          %3Ccircle class='s' cx='80' cy='400' r='1.2'/%3E
+          %3Ccircle class='sm' cx='400' cy='350' r='1'/%3E
+          %3Ccircle class='s' cx='15' cy='550' r='1.5'/%3E
+          %3Ccircle class='s' cx='465' cy='650' r='1.2'/%3E
+          %3Ccircle class='sm' cx='240' cy='820' r='1'/%3E
+          %3Ccircle class='s' cx='430' cy='730' r='1.5'/%3E
+
+          %3C!-- 곡선 넝쿨/라인 --%3E
+          %3Cpath class='b' d='M0 500 Q60 490 120 510 Q180 530 240 510 Q300 490 360 510 Q420 530 480 510' stroke-width='0.8'/%3E
+          %3Cpath class='b' d='M0 520 Q60 512 120 528 Q180 544 240 528' stroke-width='0.5' stroke-dasharray='4,6'/%3E
+
+          %3C!-- 작은 꽃 (왼쪽) --%3E
+          %3Ccircle class='bf' cx='15' cy='650' r='4'/%3E
+          %3Cellipse class='bf' cx='15' cy='643' rx='3' ry='5' transform='rotate(0 15 643)'/%3E
+          %3Cellipse class='bf' cx='22' cy='650' rx='3' ry='5' transform='rotate(90 22 650)'/%3E
+          %3Cellipse class='bf' cx='15' cy='657' rx='3' ry='5' transform='rotate(180 15 657)'/%3E
+          %3Cellipse class='bf' cx='8' cy='650' rx='3' ry='5' transform='rotate(270 8 650)'/%3E
+
+          %3C!-- 작은 꽃 (오른쪽) --%3E
+          %3Ccircle class='bf' cx='465' cy='300' r='4'/%3E
+          %3Cellipse class='bf' cx='465' cy='293' rx='3' ry='5'/%3E
+          %3Cellipse class='bf' cx='472' cy='300' rx='3' ry='5' transform='rotate(90 472 300)'/%3E
+          %3Cellipse class='bf' cx='465' cy='307' rx='3' ry='5' transform='rotate(180 465 307)'/%3E
+          %3Cellipse class='bf' cx='458' cy='300' rx='3' ry='5' transform='rotate(270 458 300)'/%3E
+
+          %3C!-- 잉크 방울 --%3E
+          %3Ccircle class='bf' cx='460' cy='560' r='3'/%3E
+          %3Cpath class='bf' d='M460 553 Q463 557 460 563 Q457 557 460 553Z'/%3E
+          %3Ccircle class='bf' cx='20' cy='200' r='2.5'/%3E
+          %3Cpath class='bf' d='M20 194 Q23 197 20 202 Q17 197 20 194Z'/%3E
+        %3C/svg%3E");
+          background-size: 480px 860px;
+          background-position: center top;
+          background-repeat: no-repeat;
         }
 
         /* ── 레이아웃 ── */
         #app-root { position: relative; z-index: 1; }
         .page-shell { width: 100%; max-width: 480px; margin: 0 auto; }
-        .fullscreen-overlay { position: fixed; inset: 0; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #0a0812; }
+        .fullscreen-overlay { position: fixed; inset: 0; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #120e1e; }
         .fullscreen-inner { max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
 
         /* ── 색상 변수 ── */
         :root {
-          --bg-base: #0a0812;
-          --bg-card: #13102000;
-          --bg-card-solid: #131020;
-          --bg-input: #1c1530;
-          --border: #2e2048;
-          --border-hover: #5b3fa0;
-          --text-primary: #ede8f5;
-          --text-secondary: #b8aed0;
-          --text-muted: #7a6a9a;
-          --accent: #8b5cf6;
-          --accent-light: #c4b5fd;
+          --bg-base: #120e1e;
+          --bg-input: #1e1830;
+          --border: #332860;
+          --border-hover: #6d4fc2;
+          --text-primary: #f0ecfc;
+          --text-secondary: #cdc5e8;
+          --text-muted: #8878b0;
+          --accent: #9b6dff;
+          --accent-light: #d4bfff;
           --pink: #f472b6;
         }
 
@@ -751,17 +843,15 @@ ${styleGuide}
         .btn:active { transform: scale(0.97); }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn-primary {
-          background: linear-gradient(135deg, #7c3aed, #a855f7);
-          color: #fff;
-          box-shadow: 0 4px 20px rgba(124,58,237,0.35);
+          background: linear-gradient(135deg, #7c3aed, #b06aff);
+          color: #fff; box-shadow: 0 4px 24px rgba(124,58,237,0.4);
         }
-        .btn-primary:hover { box-shadow: 0 6px 28px rgba(124,58,237,0.5); }
+        .btn-primary:hover { box-shadow: 0 6px 32px rgba(124,58,237,0.55); }
         .btn-outline {
-          background: rgba(255,255,255,0.04);
-          border: 1.5px solid var(--border);
-          color: var(--text-secondary);
+          background: rgba(255,255,255,0.05);
+          border: 1.5px solid var(--border); color: var(--text-secondary);
         }
-        .btn-outline:hover { border-color: var(--border-hover); color: var(--text-primary); }
+        .btn-outline:hover { border-color: var(--border-hover); color: var(--text-primary); background: rgba(255,255,255,0.08); }
 
         /* ── 인풋 ── */
         .input-field {
@@ -769,48 +859,46 @@ ${styleGuide}
           border: 1.5px solid var(--border); border-radius: 12px;
           padding: 12px 14px; color: var(--text-primary);
           font-family: 'Noto Serif KR', serif; font-size: 14px;
-          outline: none; transition: border-color 0.2s; resize: vertical;
-          -webkit-appearance: none;
+          outline: none; transition: all 0.2s; resize: vertical; -webkit-appearance: none;
         }
-        .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+        .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(155,109,255,0.18); }
         .input-field::placeholder { color: var(--text-muted); }
 
         /* ── 태그 버튼 ── */
         .tag-btn {
-          border: 1.5px solid var(--border); background: rgba(255,255,255,0.03);
+          border: 1.5px solid var(--border); background: rgba(255,255,255,0.04);
           color: var(--text-secondary); border-radius: 20px; padding: 5px 13px;
           cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px;
           transition: all 0.2s; white-space: nowrap;
         }
-        .tag-btn:hover { border-color: var(--accent); color: var(--text-primary); background: rgba(139,92,246,0.1); }
-        .tag-btn.selected { background: rgba(139,92,246,0.2); border-color: var(--accent); color: var(--accent-light); }
+        .tag-btn:hover { border-color: var(--accent); color: var(--text-primary); background: rgba(155,109,255,0.12); }
+        .tag-btn.selected { background: rgba(155,109,255,0.22); border-color: var(--accent); color: var(--accent-light); }
 
         /* ── 옵션 버튼 ── */
         .opt-btn {
-          border: 1.5px solid var(--border); background: rgba(255,255,255,0.03);
+          border: 1.5px solid var(--border); background: rgba(255,255,255,0.04);
           color: var(--text-secondary); border-radius: 12px; padding: 10px 8px;
           cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px;
           transition: all 0.2s; flex: 1; text-align: center;
         }
-        .opt-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
-        .opt-btn.selected { background: rgba(139,92,246,0.18); border-color: var(--accent); color: var(--accent-light); }
+        .opt-btn:hover { border-color: var(--border-hover); color: var(--text-primary); background: rgba(255,255,255,0.07); }
+        .opt-btn.selected { background: rgba(155,109,255,0.2); border-color: var(--accent); color: var(--accent-light); }
 
         /* ── 장르 버튼 ── */
         .genre-btn {
-          border: 1.5px solid var(--border); background: rgba(255,255,255,0.03);
+          border: 1.5px solid var(--border); background: rgba(255,255,255,0.04);
           color: var(--text-secondary); border-radius: 12px; padding: 10px 6px;
-          cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px;
+          cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px;
           transition: all 0.2s; text-align: center; width: 100%;
         }
-        .genre-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
-        .genre-btn.selected { background: rgba(139,92,246,0.18); color: #fff; }
+        .genre-btn:hover { border-color: var(--border-hover); color: var(--text-primary); background: rgba(255,255,255,0.07); }
+        .genre-btn.selected { background: rgba(155,109,255,0.2); color: #fff; }
 
         /* ── 캐릭터 카드 ── */
         .char-card {
-          background: rgba(255,255,255,0.03);
+          background: rgba(255,255,255,0.04);
           border: 1.5px solid var(--border);
           border-radius: 14px; padding: 14px; margin-bottom: 10px;
-          backdrop-filter: blur(4px);
         }
 
         /* ── 네비게이션 ── */
@@ -841,7 +929,7 @@ ${styleGuide}
         /* ── 애니메이션 ── */
         @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
         .shimmer-text {
-          background: linear-gradient(90deg, #8b5cf6, #f472b6, #c4b5fd, #8b5cf6);
+          background: linear-gradient(90deg, #9b6dff, #f472b6, #d4bfff, #9b6dff);
           background-size: 200% auto;
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           animation: shimmer 3s linear infinite;
@@ -851,16 +939,8 @@ ${styleGuide}
         @keyframes spin { to{transform:rotate(360deg)} }
         .spinner {
           display: inline-block; width: 16px; height: 16px;
-          border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff;
+          border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff;
           border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
-        }
-
-        /* ── 글라스모피즘 카드 ── */
-        .glass-card {
-          background: rgba(19,16,32,0.7);
-          border: 1px solid rgba(139,92,246,0.15);
-          backdrop-filter: blur(12px);
-          border-radius: 16px;
         }
 
         @media (max-width: 480px) { .genre-grid { grid-template-columns: repeat(2, 1fr) !important; } }
