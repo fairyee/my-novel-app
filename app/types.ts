@@ -8,6 +8,12 @@ export const GENRES = [
   { id: "drama",    label: "🏙️ 드라마",   color: "#6ee7b7" },
 ];
 
+// 나이대
+export const AGE_OPTIONS = ["10대", "20대", "30대+", "나이 불명"];
+
+// 성별
+export const GENDER_OPTIONS = ["남성", "여성", "중성/불명"];
+
 // 장르별 태그 프리셋
 export const GENRE_TAGS: Record<string, string[]> = {
   romance: ["운명적 재회","계약 연애","소꿉친구","첫사랑","재벌×평민","신분차이","삼각관계","집착","츤데레","비밀연애","오해와 화해","직장 로맨스","학교생활","순정","빙의"],
@@ -69,7 +75,7 @@ export const POVS = [
   { id: "third", label: "3인칭", desc: "그는..." },
 ];
 
-export interface Character { id: number; name: string; desc: string; role: string; }
+export interface Character { id: number; name: string; desc: string; role: string; age: string; gender: string; }
 
 export interface Novel {
   id: string; title: string; content: string; genre: string; tags: string;

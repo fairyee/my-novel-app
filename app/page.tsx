@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "./lib/supabase";
-import { Novel, Profile, Comment, Character, GENRES, GENRE_TAGS, BACKGROUNDS, BL_ROLES, GL_ROLES, STYLES, ENDINGS, RATINGS, POVS } from "./types";
+import { Novel, Profile, Comment, Character, GENRES, GENRE_TAGS, BACKGROUNDS, BL_ROLES, GL_ROLES, AGE_OPTIONS, GENDER_OPTIONS, STYLES, ENDINGS, RATINGS, POVS } from "./types";
 import AuthModal from "./components/AuthModal";
 import NovelCard from "./components/NovelCard";
 import SeriesDetail from "./components/SeriesDetail";
@@ -61,7 +61,7 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [seriesTitle, setSeriesTitle] = useState("");
   const [synopsis, setSynopsis] = useState("");
-  const [characters, setCharacters] = useState<Character[]>([{ id: 1, name: "", desc: "", role: "주인공" }]);
+  const [characters, setCharacters] = useState<Character[]>([{ id: 1, name: "", desc: "", role: "주인공", age: "", gender: "" }]);
   const [isPublic, setIsPublic] = useState(false);
   const [currentSeriesId, setCurrentSeriesId] = useState<string | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState(1);
@@ -382,7 +382,10 @@ export default function Home() {
 
     const ratingLabel = rating === "all" ? "전체가" : rating === "teen" ? "15세 이상" : "성인 (암시 포함)";
     const styleGuide = getStyleGuide();
-    const charDesc = characters.filter(c => c.name || c.desc).map(c => `- ${c.role} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`).join("\n");
+    const charDesc = characters.filter(c => c.name || c.desc || c.age || c.gender).map(c => {
+      const ageGender = [c.age, c.gender].filter(Boolean).join("/");
+      return `- ${c.role}${ageGender ? ` (${ageGender})` : ""} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`;
+    }).join("\n");
     const blGlInfo = genre === "bl" && blRole ? `BL 공수: ${BL_ROLES.find(r => r.id === blRole)?.label || ""}` :
                      genre === "gl" && glRole ? `GL 관계: ${GL_ROLES.find(r => r.id === glRole)?.label || ""}` : "";
     const backgroundInfo = selectedBackground ? `배경: ${selectedBackground}` : "";
@@ -675,7 +678,7 @@ ${styleGuide}
 
   function toggleTag(tag: string) { setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]); }
   function addCustomTag() { const t = customTag.trim(); if (t && !selectedTags.includes(t)) setSelectedTags(prev => [...prev, t]); setCustomTag(""); }
-  function addCharacter() { if (characters.length < 5) setCharacters(prev => [...prev, { id: Date.now(), name: "", desc: "", role: "조연" }]); }
+  function addCharacter() { if (characters.length < 5) setCharacters(prev => [...prev, { id: Date.now(), name: "", desc: "", role: "조연", age: "", gender: "" }]); }
   function removeCharacter(id: number) { setCharacters(prev => prev.filter(c => c.id !== id)); }
   function updateCharacter(id: number, field: keyof Character, value: string) { setCharacters(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c)); }
   function saveAsText() { const content = isEditing ? editedNovel : novel; const blob = new Blob([content], { type: "text/plain;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${seriesTitle || title || "소설"}_${currentEpisode}화.txt`; a.click(); URL.revokeObjectURL(url); }
@@ -903,38 +906,6 @@ ${styleGuide}
                         </div>
                       </div>
 
-                      {/* BL 공수 선택 */}
-                      {genre === "bl" && (
-                        <div className="section">
-                          <div className="section-title">공수 설정</div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            {BL_ROLES.map(r => (
-                              <button key={r.id}
-                                style={{ flex: "1 1 40%", border: `1.5px solid ${blRole === r.id ? "#818cf8" : "#2d2040"}`, background: blRole === r.id ? "#1e1a3a" : "#1a1228", color: blRole === r.id ? "#c4b8ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
-                                onClick={() => setBlRole(blRole === r.id ? null : r.id)}>
-                                {r.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* GL 역할 선택 */}
-                      {genre === "gl" && (
-                        <div className="section">
-                          <div className="section-title">관계 설정</div>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            {GL_ROLES.map(r => (
-                              <button key={r.id}
-                                style={{ flex: 1, border: `1.5px solid ${glRole === r.id ? "#c084fc" : "#2d2040"}`, background: glRole === r.id ? "#1e1a3a" : "#1a1228", color: glRole === r.id ? "#e9d5ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
-                                onClick={() => setGlRole(glRole === r.id ? null : r.id)}>
-                                {r.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
                       {/* 배경 */}
                       {genre && BACKGROUNDS[genre] && (
                         <div className="section">
@@ -986,39 +957,91 @@ ${styleGuide}
                   {/* ── 2단계: 캐릭터 ── */}
                   {formStep === 2 && (
                     <div>
+                      {/* BL 공수 설정 */}
+                      {genre === "bl" && (
+                        <div className="section">
+                          <div className="section-title">공수 설정</div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {BL_ROLES.map(r => (
+                              <button key={r.id}
+                                style={{ flex: "1 1 40%", border: `1.5px solid ${blRole === r.id ? "#818cf8" : "#2d2040"}`, background: blRole === r.id ? "#1e1a3a" : "#1a1228", color: blRole === r.id ? "#c4b8ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
+                                onClick={() => setBlRole(blRole === r.id ? null : r.id)}>
+                                {r.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* GL 관계 설정 */}
+                      {genre === "gl" && (
+                        <div className="section">
+                          <div className="section-title">관계 설정</div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            {GL_ROLES.map(r => (
+                              <button key={r.id}
+                                style={{ flex: 1, border: `1.5px solid ${glRole === r.id ? "#c084fc" : "#2d2040"}`, background: glRole === r.id ? "#1e1a3a" : "#1a1228", color: glRole === r.id ? "#e9d5ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
+                                onClick={() => setGlRole(glRole === r.id ? null : r.id)}>
+                                {r.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="section">
                         <div className="section-title">
-                          {genre === "bl" ? "등장인물 (공/수 구분 입력)" : genre === "gl" ? "등장인물 (두 주인공)" : "등장인물"}
+                          {genre === "bl" ? "등장인물 (공/수 역할 지정)" : genre === "gl" ? "등장인물 (두 주인공)" : "등장인물"}
                         </div>
                         {characters.map((char, idx) => (
                           <div key={char.id} className="char-card">
+                            {/* 역할 + 이름 */}
                             <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
                               {genre === "bl" ? (
-                                <select
-                                  value={char.role}
-                                  onChange={e => updateCharacter(char.id, "role", e.target.value)}
-                                  style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 8px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
+                                <select value={char.role} onChange={e => updateCharacter(char.id, "role", e.target.value)}
+                                  style={{ background: "#2d1f4e", border: "1px solid #818cf8", borderRadius: 6, padding: "5px 8px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, flexShrink: 0 }}>
                                   <option value="공">공</option>
                                   <option value="수">수</option>
                                   <option value="조연">조연</option>
                                 </select>
                               ) : genre === "gl" ? (
-                                <select
-                                  value={char.role}
-                                  onChange={e => updateCharacter(char.id, "role", e.target.value)}
-                                  style={{ background: "#2d1f4e", border: "1px solid #c084fc", borderRadius: 6, padding: "5px 8px", color: "#e9d5ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
+                                <select value={char.role} onChange={e => updateCharacter(char.id, "role", e.target.value)}
+                                  style={{ background: "#2d1f4e", border: "1px solid #c084fc", borderRadius: 6, padding: "5px 8px", color: "#e9d5ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, flexShrink: 0 }}>
                                   <option value="주인공1">주인공1</option>
                                   <option value="주인공2">주인공2</option>
                                   <option value="조연">조연</option>
                                 </select>
                               ) : (
-                                <span style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}
+                                <span style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Noto Serif KR', serif" }}
                                   onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>{char.role} ↕</span>
                               )}
-                              <input className="input-field" style={{ flex: 1 }} placeholder="이름" value={char.name} onChange={e => updateCharacter(char.id, "name", e.target.value)} />
+                              <input className="input-field" style={{ flex: 1 }} placeholder="이름 (선택)" value={char.name} onChange={e => updateCharacter(char.id, "name", e.target.value)} />
                               {idx > 0 && <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif", flexShrink: 0 }} onClick={() => removeCharacter(char.id)}>삭제</button>}
                             </div>
-                            <textarea className="input-field" rows={2} placeholder={genre === "bl" ? "성격, 외모, 특징 (예: 차갑고 도도한 재벌 3세)" : "캐릭터 특징"} value={char.desc} onChange={e => updateCharacter(char.id, "desc", e.target.value)} />
+
+                            {/* 나이대 + 성별 */}
+                            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                              {AGE_OPTIONS.map(a => (
+                                <button key={a}
+                                  style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${char.age === a ? accentColor : "#2d2040"}`, background: char.age === a ? "#2d1f4e" : "#1a1228", color: char.age === a ? "#c4b8ff" : "#7a6a8a", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.15s" }}
+                                  onClick={() => updateCharacter(char.id, "age", char.age === a ? "" : a)}>
+                                  {a}
+                                </button>
+                              ))}
+                              <span style={{ width: "100%", height: 0 }} />
+                              {GENDER_OPTIONS.map(g => (
+                                <button key={g}
+                                  style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${char.gender === g ? accentColor : "#2d2040"}`, background: char.gender === g ? "#2d1f4e" : "#1a1228", color: char.gender === g ? "#c4b8ff" : "#7a6a8a", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.15s" }}
+                                  onClick={() => updateCharacter(char.id, "gender", char.gender === g ? "" : g)}>
+                                  {g}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* 특징 */}
+                            <textarea className="input-field" rows={2}
+                              placeholder={genre === "bl" ? "성격, 외모, 특징 (예: 차갑고 도도한 재벌 3세)" : "성격, 외모, 특징"}
+                              value={char.desc} onChange={e => updateCharacter(char.id, "desc", e.target.value)} />
                           </div>
                         ))}
                         {characters.length < 5 && <button className="btn btn-outline" onClick={addCharacter} style={{ width: "100%", marginTop: 4 }}>+ 캐릭터 추가</button>}
