@@ -1032,7 +1032,7 @@ ${styleGuide}
                     <div>
                       <div className="section">
                         <div className="section-title">시리즈 제목</div>
-                        <input className="input-field" placeholder="연재 시 입력 (비우면 1화 제목 사용)" value={seriesTitle} onChange={e => setSeriesTitle(e.target.value)} />
+                        <input className="input-field" placeholder="비우면 AI가 정해요" value={seriesTitle} onChange={e => setSeriesTitle(e.target.value)} />
                       </div>
 
                       <div className="section">

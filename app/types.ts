@@ -60,12 +60,12 @@ export const BACKGROUNDS: Record<string, string[]> = {
 };
 
 export const STYLES = [
-  { id: "emotional",  label: "💔 감정 몰입",    desc: "눈물나는 스타일" },
-  { id: "fast",       label: "🔥 자극적 전개",   desc: "몰아치는 전개" },
-  { id: "dialogue",   label: "💬 대사 중심",     desc: "웹소설 스타일" },
-  { id: "cinematic",  label: "🎬 드라마 느낌",   desc: "영상처럼 읽힘" },
-  { id: "webnovel",   label: "📱 웹소설 정통",   desc: "짧은 문장·몰입형" },
-  { id: "descriptive",label: "🎨 묘사 중심",     desc: "장면이 생생함" },
+  { id: "emotional",   label: "💔 감정 몰입",   desc: "눈물나는 스타일" },
+  { id: "fast",        label: "🔥 자극적 전개",  desc: "몰아치는 전개" },
+  { id: "dialogue",    label: "💬 대사 중심",    desc: "웹소설 스타일" },
+  { id: "cinematic",   label: "🎬 드라마 느낌",  desc: "영상처럼 읽힘" },
+  { id: "lyrical",     label: "🌸 감성 문학",    desc: "문학적인 문장" },
+  { id: "descriptive", label: "🎨 묘사 중심",    desc: "장면이 생생함" },
 ];
 
 export const ENDINGS = [
