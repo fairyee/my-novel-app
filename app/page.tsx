@@ -698,7 +698,7 @@ ${styleGuide}
           overflow-x: hidden;
         }
 
-        /* ── 배경: 그라데이션 분위기 레이어 ── */
+        /* ── 배경 ── */
         body::before {
           content: '';
           position: fixed;
@@ -706,18 +706,11 @@ ${styleGuide}
           z-index: 0;
           pointer-events: none;
           background:
-            radial-gradient(ellipse 90% 55% at 15% 0%,   rgba(109,40,217,0.28) 0%, transparent 55%),
-            radial-gradient(ellipse 70% 50% at 90% 100%, rgba(219,39,119,0.18) 0%, transparent 55%),
-            radial-gradient(ellipse 55% 45% at 80% 15%,  rgba(139,92,246,0.14) 0%, transparent 50%),
-            radial-gradient(ellipse 40% 40% at 10% 80%,  rgba(167,139,250,0.10) 0%, transparent 50%),
-            linear-gradient(160deg, #1a1130 0%, #120e1e 40%, #0e0b1a 100%);
+            radial-gradient(ellipse 80% 50% at 15% 0%,   rgba(109,40,217,0.22) 0%, transparent 55%),
+            radial-gradient(ellipse 60% 45% at 88% 100%, rgba(219,39,119,0.14) 0%, transparent 55%),
+            radial-gradient(ellipse 45% 40% at 75% 20%,  rgba(139,92,246,0.10) 0%, transparent 50%),
+            linear-gradient(160deg, #1c1432 0%, #120e1e 50%, #0e0b1a 100%);
         }
-
-        /* ── 레이아웃 ── */
-        #app-root { position: relative; z-index: 1; }
-        .page-shell { width: 100%; max-width: 480px; margin: 0 auto; }
-        .fullscreen-overlay { position: fixed; inset: 0; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #120e1e; }
-        .fullscreen-inner { max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
 
         /* ── 레이아웃 ── */
         #app-root { position: relative; z-index: 1; }
@@ -859,73 +852,6 @@ ${styleGuide}
       `}</style>
 
       <div id="app-root" style={{ fontFamily: "'Noto Serif KR', serif", color: "#f0ecfc", minHeight: "100vh", maxWidth: 480, margin: "0 auto", width: "100%" }}>
-
-        {/* 배경 SVG 일러스트 */}
-        <svg style={{ position: "fixed", inset: 0, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none", opacity: 0.9 }} viewBox="0 0 480 860" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-          {/* 책 묶음 왼쪽 상단 */}
-          <rect x="12" y="88" width="13" height="50" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
-          <rect x="28" y="94" width="10" height="44" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.18)" strokeWidth="1"/>
-          <rect x="41" y="82" width="15" height="56" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.18)" strokeWidth="1"/>
-          <rect x="59" y="97" width="9" height="41" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
-          {/* 책 묶음 오른쪽 상단 */}
-          <rect x="388" y="58" width="13" height="46" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
-          <rect x="404" y="64" width="10" height="40" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.18)" strokeWidth="1"/>
-          <rect x="417" y="52" width="15" height="52" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.18)" strokeWidth="1"/>
-          <rect x="435" y="67" width="9" height="37" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
-          {/* 책 묶음 왼쪽 하단 */}
-          <rect x="8" y="755" width="13" height="46" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
-          <rect x="24" y="763" width="10" height="38" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
-          <rect x="37" y="750" width="15" height="51" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.16)" strokeWidth="1"/>
-          {/* 책 묶음 오른쪽 하단 */}
-          <rect x="418" y="785" width="13" height="46" rx="2" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
-          <rect x="434" y="793" width="10" height="38" rx="2" fill="rgba(196,181,253,0.05)" stroke="rgba(196,181,253,0.15)" strokeWidth="1"/>
-          <rect x="447" y="779" width="15" height="52" rx="2" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.16)" strokeWidth="1"/>
-          {/* 깃털 펜 왼쪽 */}
-          <path d="M28 305 Q18 262 33 218 Q44 240 39 272 Q34 288 28 305Z" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.22)" strokeWidth="1.2" strokeLinecap="round"/>
-          <line x1="31" y1="305" x2="31" y2="342" stroke="rgba(196,181,253,0.18)" strokeWidth="1.2"/>
-          <path d="M18 252 Q31 257 44 250" fill="none" stroke="rgba(196,181,253,0.12)" strokeWidth="0.9"/>
-          <path d="M16 268 Q31 273 46 266" fill="none" stroke="rgba(196,181,253,0.12)" strokeWidth="0.9"/>
-          {/* 깃털 펜 오른쪽 */}
-          <path d="M452 485 Q462 442 447 400 Q436 422 441 455 Q446 470 452 485Z" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.22)" strokeWidth="1.2" strokeLinecap="round"/>
-          <line x1="449" y1="485" x2="449" y2="522" stroke="rgba(196,181,253,0.18)" strokeWidth="1.2"/>
-          <path d="M462 432 Q449 437 436 430" fill="none" stroke="rgba(196,181,253,0.12)" strokeWidth="0.9"/>
-          {/* 초승달 */}
-          <circle cx="452" cy="195" r="26" fill="none" stroke="rgba(196,181,253,0.22)" strokeWidth="1.2"/>
-          <circle cx="462" cy="187" r="22" fill="#120e1e" stroke="none"/>
-          {/* 별들 */}
-          <circle cx="118" cy="42" r="1.5" fill="rgba(255,255,255,0.75)"/>
-          <circle cx="198" cy="28" r="1" fill="rgba(255,255,255,0.45)"/>
-          <circle cx="348" cy="52" r="1.5" fill="rgba(255,255,255,0.7)"/>
-          <circle cx="308" cy="22" r="1" fill="rgba(255,255,255,0.4)"/>
-          <circle cx="78" cy="398" r="1.2" fill="rgba(255,255,255,0.5)"/>
-          <circle cx="398" cy="348" r="1" fill="rgba(255,255,255,0.4)"/>
-          <circle cx="14" cy="548" r="1.5" fill="rgba(255,255,255,0.6)"/>
-          <circle cx="463" cy="648" r="1.2" fill="rgba(255,255,255,0.5)"/>
-          <circle cx="238" cy="818" r="1" fill="rgba(255,255,255,0.4)"/>
-          <circle cx="428" cy="728" r="1.5" fill="rgba(255,255,255,0.6)"/>
-          <circle cx="240" cy="145" r="1" fill="rgba(255,255,255,0.35)"/>
-          <circle cx="155" cy="680" r="1.2" fill="rgba(255,255,255,0.45)"/>
-          {/* 넝쿨 곡선 */}
-          <path d="M0 505 Q60 495 120 515 Q180 535 240 515 Q300 495 360 515 Q420 535 480 515" fill="none" stroke="rgba(196,181,253,0.1)" strokeWidth="0.9"/>
-          <path d="M0 522 Q60 514 120 530 Q180 546 240 530" fill="none" stroke="rgba(196,181,253,0.07)" strokeWidth="0.6" strokeDasharray="4 6"/>
-          {/* 작은 꽃 왼쪽 */}
-          <circle cx="14" cy="648" r="3.5" fill="rgba(196,181,253,0.07)" stroke="rgba(196,181,253,0.18)" strokeWidth="1"/>
-          <ellipse cx="14" cy="641" rx="2.5" ry="4.5" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
-          <ellipse cx="21" cy="648" rx="2.5" ry="4.5" transform="rotate(90 21 648)" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
-          <ellipse cx="14" cy="655" rx="2.5" ry="4.5" transform="rotate(180 14 655)" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
-          <ellipse cx="7" cy="648" rx="2.5" ry="4.5" transform="rotate(270 7 648)" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
-          {/* 작은 꽃 오른쪽 */}
-          <circle cx="463" cy="298" r="3.5" fill="rgba(244,114,182,0.07)" stroke="rgba(244,114,182,0.2)" strokeWidth="1"/>
-          <ellipse cx="463" cy="291" rx="2.5" ry="4.5" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
-          <ellipse cx="470" cy="298" rx="2.5" ry="4.5" transform="rotate(90 470 298)" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
-          <ellipse cx="463" cy="305" rx="2.5" ry="4.5" transform="rotate(180 463 305)" fill="rgba(196,181,253,0.06)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
-          <ellipse cx="456" cy="298" rx="2.5" ry="4.5" transform="rotate(270 456 298)" fill="rgba(244,114,182,0.06)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
-          {/* 잉크방울 */}
-          <circle cx="458" cy="558" r="3" fill="rgba(196,181,253,0.08)" stroke="rgba(196,181,253,0.2)" strokeWidth="1"/>
-          <path d="M458 551 Q461 555 458 561 Q455 555 458 551Z" fill="rgba(196,181,253,0.08)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8"/>
-          <circle cx="19" cy="198" r="2.5" fill="rgba(244,114,182,0.08)" stroke="rgba(244,114,182,0.2)" strokeWidth="1"/>
-          <path d="M19 192 Q22 196 19 200 Q16 196 19 192Z" fill="rgba(244,114,182,0.08)" stroke="rgba(244,114,182,0.15)" strokeWidth="0.8"/>
-        </svg>
 
         {/* 헤더 */}
         <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(18,14,30,0.88)", backdropFilter: "blur(18px)", borderBottom: "1px solid rgba(155,109,255,0.18)", padding: "0 16px" }}>
