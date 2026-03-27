@@ -689,57 +689,195 @@ ${styleGuide}
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0d0a14; min-height: 100vh; overflow-x: hidden; }
-        .genre-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #c4b8d8; border-radius: 10px; padding: 10px 6px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; text-align: center; width: 100%; }
-        .genre-btn:hover, .genre-btn.selected { background: #221738; color: #fff; }
-        .tag-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 20px; padding: 5px 12px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px; transition: all 0.2s; white-space: nowrap; }
-        .tag-btn:hover { border-color: #7c3aed; color: #e8e0f0; }
-        .tag-btn.selected { background: #2d1f4e; border-color: #7c3aed; color: #c4b8ff; }
-        .opt-btn { border: 1.5px solid #2d2040; background: #1a1228; color: #9a8aaa; border-radius: 10px; padding: 10px 8px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px; transition: all 0.2s; flex: 1; text-align: center; }
-        .opt-btn:hover, .opt-btn.selected { background: #221738; color: #fff; }
-        .input-field { width: 100%; background: #1a1228; border: 1.5px solid #2d2040; border-radius: 10px; padding: 12px 14px; color: #e8e0f0; font-family: 'Noto Serif KR', serif; font-size: 14px; outline: none; transition: border-color 0.2s; resize: vertical; -webkit-appearance: none; }
-        .input-field:focus { border-color: #7c3aed; }
-        .input-field::placeholder { color: #5a4a6a; }
-        .char-card { background: #160f22; border: 1.5px solid #2d2040; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
-        .btn { border: none; border-radius: 10px; padding: 12px 16px; cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; -webkit-tap-highlight-color: transparent; }
-        .btn:active { transform: scale(0.97); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
-        .btn-outline { background: transparent; border: 1.5px solid #2d2040; color: #9a8aaa; }
-        .novel-editor { width: 100%; background: transparent; border: none; outline: none; color: #ddd4ee; font-family: 'Noto Serif KR', serif; font-size: 16px; line-height: 2.1; resize: none; font-weight: 300; min-height: 300px; }
-        .nav-btn { background: transparent; border: none; color: #7a6a8a; font-family: 'Noto Serif KR', serif; font-size: 13px; cursor: pointer; padding: 10px 0; flex: 1; text-align: center; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .nav-btn.active { color: #e8e0f0; border-bottom-color: #7c3aed; }
-        .tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; color: #7a6a8a; font-family: 'Noto Serif KR', serif; font-size: 14px; cursor: pointer; padding: 10px 16px; transition: all 0.2s; }
-        .tab-btn.active { border-bottom-color: #7c3aed; color: #e8e0f0; }
-        .section { margin-bottom: 24px; }
-        .section-title { font-size: 12px; font-weight: 600; color: #7a6a8a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
-        @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
-        .shimmer-text { background: linear-gradient(90deg,#7c3aed,#f472b6,#a78bfa,#7c3aed); background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:shimmer 3s linear infinite; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-        .fade-in { animation: fadeIn 0.4s ease forwards; }
-        @keyframes spin { to{transform:rotate(360deg)} }
-        .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
-        @media (max-width: 480px) { .genre-grid { grid-template-columns: repeat(3, 1fr) !important; } }
-        /* 전체 페이지 너비 통일 */
+
+        body {
+          background: #0a0812;
+          min-height: 100vh;
+          overflow-x: hidden;
+        }
+
+        /* ── 배경 일러스트 (SVG 패턴) ── */
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          background-image:
+            radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124,58,237,0.13) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 50% at 85% 90%, rgba(244,114,182,0.10) 0%, transparent 55%),
+            radial-gradient(ellipse 40% 40% at 70% 30%, rgba(167,139,250,0.07) 0%, transparent 50%),
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cdefs%3E%3Cstyle%3E.s%7Bfill:none;stroke:rgba(167,139,250,0.07);stroke-width:1%7D%3C/style%3E%3C/defs%3E%3C!-- 책 모양들 --%3E%3Crect class='s' x='40' y='120' width='28' height='38' rx='2'/%3E%3Crect class='s' x='72' y='128' width='20' height='30' rx='2'/%3E%3Crect class='s' x='96' y='115' width='24' height='43' rx='2'/%3E%3Crect class='s' x='750' y='60' width='28' height='38' rx='2'/%3E%3Crect class='s' x='782' y='68' width='20' height='30' rx='2'/%3E%3Crect class='s' x='806' y='55' width='24' height='43' rx='2'/%3E%3Crect class='s' x='60' y='700' width='28' height='38' rx='2'/%3E%3Crect class='s' x='92' y='708' width='20' height='30' rx='2'/%3E%3Crect class='s' x='116' y='695' width='24' height='43' rx='2'/%3E%3Crect class='s' x='780' y='780' width='28' height='38' rx='2'/%3E%3Crect class='s' x='812' y='788' width='20' height='30' rx='2'/%3E%3C!-- 별 모양들 --%3E%3Ccircle class='s' cx='200' cy='80' r='2'/%3E%3Ccircle class='s' cx='600' cy='40' r='1.5'/%3E%3Ccircle class='s' cx='820' cy='200' r='2'/%3E%3Ccircle class='s' cx='150' cy='450' r='1.5'/%3E%3Ccircle class='s' cx='700' cy='500' r='2'/%3E%3Ccircle class='s' cx='400' cy='850' r='1.5'/%3E%3Ccircle class='s' cx='850' cy='600' r='2'/%3E%3C!-- 깃털 펜 --%3E%3Cpath class='s' d='M500 200 Q520 160 540 140 Q530 160 510 200 Q520 185 530 170'/%3E%3Cpath class='s' d='M100 350 Q120 310 140 290 Q130 310 110 350 Q120 335 130 320'/%3E%3Cpath class='s' d='M780 400 Q800 360 820 340 Q810 360 790 400'/%3E%3C!-- 달 --%3E%3Ccircle class='s' cx='830' cy='130' r='25'/%3E%3Ccircle cx='845' cy='120' r='22' fill='%230a0812' stroke='none'/%3E%3C!-- 넝쿨 라인 --%3E%3Cpath class='s' d='M0 600 Q100 580 200 600 Q300 620 400 600 Q500 580 600 600'/%3E%3Cpath class='s' d='M300 0 Q320 100 300 200 Q280 300 300 400'/%3E%3C/svg%3E");
+          background-size: cover, cover, cover, 900px 900px;
+        }
+
+        /* ── 레이아웃 ── */
+        #app-root { position: relative; z-index: 1; }
         .page-shell { width: 100%; max-width: 480px; margin: 0 auto; }
-        .fullscreen-overlay { position: fixed; inset: 0; background: #0d0a14; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .fullscreen-overlay { position: fixed; inset: 0; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #0a0812; }
         .fullscreen-inner { max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
+
+        /* ── 색상 변수 ── */
+        :root {
+          --bg-base: #0a0812;
+          --bg-card: #13102000;
+          --bg-card-solid: #131020;
+          --bg-input: #1c1530;
+          --border: #2e2048;
+          --border-hover: #5b3fa0;
+          --text-primary: #ede8f5;
+          --text-secondary: #b8aed0;
+          --text-muted: #7a6a9a;
+          --accent: #8b5cf6;
+          --accent-light: #c4b5fd;
+          --pink: #f472b6;
+        }
+
+        /* ── 글씨/타이포 ── */
+        .section-title {
+          font-size: 11px; font-weight: 700; color: var(--accent-light);
+          margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+        }
+
+        /* ── 버튼 ── */
+        .btn {
+          border: none; border-radius: 12px; padding: 12px 16px; cursor: pointer;
+          font-family: 'Noto Serif KR', serif; font-size: 14px; font-weight: 600;
+          transition: all 0.2s; display: inline-flex; align-items: center;
+          justify-content: center; gap: 6px; -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-primary {
+          background: linear-gradient(135deg, #7c3aed, #a855f7);
+          color: #fff;
+          box-shadow: 0 4px 20px rgba(124,58,237,0.35);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 28px rgba(124,58,237,0.5); }
+        .btn-outline {
+          background: rgba(255,255,255,0.04);
+          border: 1.5px solid var(--border);
+          color: var(--text-secondary);
+        }
+        .btn-outline:hover { border-color: var(--border-hover); color: var(--text-primary); }
+
+        /* ── 인풋 ── */
+        .input-field {
+          width: 100%; background: var(--bg-input);
+          border: 1.5px solid var(--border); border-radius: 12px;
+          padding: 12px 14px; color: var(--text-primary);
+          font-family: 'Noto Serif KR', serif; font-size: 14px;
+          outline: none; transition: border-color 0.2s; resize: vertical;
+          -webkit-appearance: none;
+        }
+        .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139,92,246,0.15); }
+        .input-field::placeholder { color: var(--text-muted); }
+
+        /* ── 태그 버튼 ── */
+        .tag-btn {
+          border: 1.5px solid var(--border); background: rgba(255,255,255,0.03);
+          color: var(--text-secondary); border-radius: 20px; padding: 5px 13px;
+          cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px;
+          transition: all 0.2s; white-space: nowrap;
+        }
+        .tag-btn:hover { border-color: var(--accent); color: var(--text-primary); background: rgba(139,92,246,0.1); }
+        .tag-btn.selected { background: rgba(139,92,246,0.2); border-color: var(--accent); color: var(--accent-light); }
+
+        /* ── 옵션 버튼 ── */
+        .opt-btn {
+          border: 1.5px solid var(--border); background: rgba(255,255,255,0.03);
+          color: var(--text-secondary); border-radius: 12px; padding: 10px 8px;
+          cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 13px;
+          transition: all 0.2s; flex: 1; text-align: center;
+        }
+        .opt-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+        .opt-btn.selected { background: rgba(139,92,246,0.18); border-color: var(--accent); color: var(--accent-light); }
+
+        /* ── 장르 버튼 ── */
+        .genre-btn {
+          border: 1.5px solid var(--border); background: rgba(255,255,255,0.03);
+          color: var(--text-secondary); border-radius: 12px; padding: 10px 6px;
+          cursor: pointer; font-family: 'Noto Serif KR', serif; font-size: 12px;
+          transition: all 0.2s; text-align: center; width: 100%;
+        }
+        .genre-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+        .genre-btn.selected { background: rgba(139,92,246,0.18); color: #fff; }
+
+        /* ── 캐릭터 카드 ── */
+        .char-card {
+          background: rgba(255,255,255,0.03);
+          border: 1.5px solid var(--border);
+          border-radius: 14px; padding: 14px; margin-bottom: 10px;
+          backdrop-filter: blur(4px);
+        }
+
+        /* ── 네비게이션 ── */
+        .nav-btn {
+          background: transparent; border: none; color: var(--text-muted);
+          font-family: 'Noto Serif KR', serif; font-size: 13px; cursor: pointer;
+          padding: 10px 0; flex: 1; text-align: center;
+          border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .nav-btn.active { color: var(--text-primary); border-bottom-color: var(--accent); }
+        .tab-btn {
+          background: transparent; border: none; border-bottom: 2px solid transparent;
+          color: var(--text-muted); font-family: 'Noto Serif KR', serif; font-size: 14px;
+          cursor: pointer; padding: 10px 16px; transition: all 0.2s;
+        }
+        .tab-btn.active { border-bottom-color: var(--accent); color: var(--text-primary); }
+
+        /* ── 소설 에디터 ── */
+        .novel-editor {
+          width: 100%; background: transparent; border: none; outline: none;
+          color: var(--text-primary); font-family: 'Noto Serif KR', serif;
+          font-size: 16px; line-height: 2.2; resize: none; font-weight: 300; min-height: 300px;
+        }
+
+        /* ── 섹션 ── */
+        .section { margin-bottom: 24px; }
+
+        /* ── 애니메이션 ── */
+        @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+        .shimmer-text {
+          background: linear-gradient(90deg, #8b5cf6, #f472b6, #c4b5fd, #8b5cf6);
+          background-size: 200% auto;
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          animation: shimmer 3s linear infinite;
+        }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        .fade-in { animation: fadeIn 0.35s ease forwards; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        .spinner {
+          display: inline-block; width: 16px; height: 16px;
+          border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff;
+          border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+        }
+
+        /* ── 글라스모피즘 카드 ── */
+        .glass-card {
+          background: rgba(19,16,32,0.7);
+          border: 1px solid rgba(139,92,246,0.15);
+          backdrop-filter: blur(12px);
+          border-radius: 16px;
+        }
+
+        @media (max-width: 480px) { .genre-grid { grid-template-columns: repeat(2, 1fr) !important; } }
       `}</style>
 
-      <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh", maxWidth: 480, margin: "0 auto", width: "100%" }}>
+      <div id="app-root" style={{ fontFamily: "'Noto Serif KR', serif", color: "#ede8f5", minHeight: "100vh", maxWidth: 480, margin: "0 auto", width: "100%" }}>
 
         {/* 헤더 */}
-        <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#0d0a14cc", backdropFilter: "blur(12px)", borderBottom: "1px solid #2d2040", padding: "0 16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 52 }}>
+        <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(10,8,18,0.85)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(139,92,246,0.15)", padding: "0 16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 54 }}>
             <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }} onClick={() => { setView("create"); resetForm(); }}>
-              <span style={{ fontSize: 20, fontFamily: "'Playfair Display', serif", fontWeight: 700 }}><span className="shimmer-text">Novella</span></span>
-              <span style={{ fontSize: 10, color: "#5a4a6a", letterSpacing: "0.15em" }}>노벨라</span>
+              <span style={{ fontSize: 22, fontFamily: "'Playfair Display', serif", fontWeight: 700 }}><span className="shimmer-text">Novella</span></span>
+              <span style={{ fontSize: 10, color: "#7a6a9a", letterSpacing: "0.2em" }}>노벨라</span>
             </div>
             {user ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#c4b8d8", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }} onClick={() => { setShowProfile(true); setNicknameInput(profile?.nickname || ""); }}>
+                <button style={{ background: "none", border: "none", cursor: "pointer", color: "#b8aed0", fontSize: 13, fontFamily: "'Noto Serif KR', serif" }} onClick={() => { setShowProfile(true); setNicknameInput(profile?.nickname || ""); }}>
                   👤 {profile?.nickname || user.email?.split("@")[0]}
                 </button>
                 <button className="btn btn-outline" style={{ padding: "6px 10px", fontSize: 12 }} onClick={handleLogout}>로그아웃</button>
@@ -750,7 +888,7 @@ ${styleGuide}
           </div>
         </header>
 
-        <nav style={{ display: "flex", borderBottom: "1px solid #2d2040", background: "#0d0a14" }}>
+        <nav style={{ display: "flex", borderBottom: "1px solid rgba(139,92,246,0.12)", background: "rgba(10,8,18,0.6)", backdropFilter: "blur(8px)" }}>
           <button className={`nav-btn${view === "create" ? " active" : ""}`} onClick={() => setView("create")}>✍️ 글쓰기</button>
           <button className={`nav-btn${view === "explore" ? " active" : ""}`} onClick={() => setView("explore")}>🔍 둘러보기</button>
           <button className={`nav-btn${view === "library" ? " active" : ""}`} onClick={() => setView("library")}>📚 서재</button>
@@ -771,10 +909,10 @@ ${styleGuide}
 
         {showProfile && (
           <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowProfile(false)}>
-            <div style={{ background: "#1a1228", borderRadius: "20px 20px 0 0", padding: "28px 20px 40px", width: "100%", maxWidth: 480 }} onClick={e => e.stopPropagation()}>
-              <div style={{ width: 36, height: 4, background: "#2d2040", borderRadius: 2, margin: "0 auto 24px" }} />
+            <div style={{ background: "rgba(28,21,48,0.9)", borderRadius: "20px 20px 0 0", padding: "28px 20px 40px", width: "100%", maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+              <div style={{ width: 36, height: 4, background: "#2e2048", borderRadius: 2, margin: "0 auto 24px" }} />
               <h2 style={{ marginBottom: 8, fontSize: 18, fontWeight: 600, textAlign: "center" }}>프로필</h2>
-              <div style={{ fontSize: 12, color: "#5a4a6a", textAlign: "center", marginBottom: 20 }}>{user?.email}</div>
+              <div style={{ fontSize: 12, color: "#6a5a8a", textAlign: "center", marginBottom: 20 }}>{user?.email}</div>
               <input className="input-field" style={{ marginBottom: 16 }} placeholder="닉네임" value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} />
               <button className="btn btn-primary" style={{ width: "100%", padding: 14 }} onClick={saveNickname} disabled={nicknameSaving}>
                 {nicknameSaving ? <><span className="spinner" /> 저장 중...</> : "저장"}
@@ -785,14 +923,14 @@ ${styleGuide}
 
         {showDeleteModal && (
           <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowDeleteModal(null)}>
-            <div style={{ background: "#1a1228", borderRadius: 16, padding: 24, width: "100%", maxWidth: 360 }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: "rgba(28,21,48,0.9)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 360 }} onClick={e => e.stopPropagation()}>
               <h3 style={{ marginBottom: 8, fontSize: 16, fontWeight: 600 }}>삭제 선택</h3>
-              <p style={{ fontSize: 13, color: "#7a6a8a", marginBottom: 20 }}>"{showDeleteModal.series_title || showDeleteModal.title}"를 어떻게 삭제할까요?</p>
+              <p style={{ fontSize: 13, color: "#7a6a9a", marginBottom: 20 }}>"{showDeleteModal.series_title || showDeleteModal.title}"를 어떻게 삭제할까요?</p>
               {showDeleteModal._episodes && showDeleteModal._episodes.length > 1 && (
                 <>
-                  <p style={{ fontSize: 13, color: "#c4b8d8", marginBottom: 8 }}>특정 화만 삭제:</p>
+                  <p style={{ fontSize: 13, color: "#b8aed0", marginBottom: 8 }}>특정 화만 삭제:</p>
                   {showDeleteModal._episodes.map(ep => (
-                    <button key={ep.id} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "1px solid #2d2040", borderRadius: 8, padding: "8px 12px", color: "#9a8aaa", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, marginBottom: 6 }}
+                    <button key={ep.id} style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "1px solid #2e2048", borderRadius: 8, padding: "8px 12px", color: "#a89ec0", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, marginBottom: 6 }}
                       onClick={() => { if (confirm(`${ep.episode_number}화를 삭제할까요?`)) deleteEpisode(ep.id); }}>
                       {ep.episode_number}화. {ep.title}
                     </button>
@@ -807,7 +945,7 @@ ${styleGuide}
                 <button style={{ width: "100%", padding: "10px", background: "#3d1f1f", border: "1px solid #f87171", borderRadius: 10, color: "#f87171", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, marginBottom: 8 }}
                   onClick={() => deleteEpisode(showDeleteModal.id)}>🗑️ 삭제</button>
               )}
-              <button style={{ width: "100%", padding: "10px", background: "transparent", border: "1px solid #2d2040", borderRadius: 10, color: "#7a6a8a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14 }}
+              <button style={{ width: "100%", padding: "10px", background: "transparent", border: "1px solid #2e2048", borderRadius: 10, color: "#7a6a9a", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14 }}
                 onClick={() => setShowDeleteModal(null)}>취소</button>
             </div>
           </div>
@@ -860,24 +998,24 @@ ${styleGuide}
                 <div className="fade-in">
                   {/* 연재 중 배너 */}
                   {currentSeriesId && (
-                    <div style={{ background: "#1a1228", border: "1px solid #7c3aed", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ background: "rgba(28,21,48,0.9)", border: "1px solid #7c3aed", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
                         <div style={{ fontSize: 11, color: "#7c3aed", marginBottom: 2 }}>연재 중</div>
-                        <div style={{ fontSize: 14, color: "#c4b8d8" }}>{seriesTitle || "제목 없음"} — {currentEpisode}화 작성 중</div>
+                        <div style={{ fontSize: 14, color: "#b8aed0" }}>{seriesTitle || "제목 없음"} — {currentEpisode}화 작성 중</div>
                       </div>
-                      <button style={{ background: "none", border: "none", color: "#5a4a6a", cursor: "pointer", fontSize: 12, fontFamily: "'Noto Serif KR', serif" }} onClick={resetForm}>새 작품</button>
+                      <button style={{ background: "none", border: "none", color: "#6a5a8a", cursor: "pointer", fontSize: 12, fontFamily: "'Noto Serif KR', serif" }} onClick={resetForm}>새 작품</button>
                     </div>
                   )}
 
                   {/* 3단계 탭 */}
-                  <div style={{ display: "flex", marginBottom: 24, gap: 0, borderRadius: 12, overflow: "hidden", border: "1px solid #2d2040" }}>
+                  <div style={{ display: "flex", marginBottom: 24, gap: 0, borderRadius: 12, overflow: "hidden", border: "1px solid #2e2048" }}>
                     {[
                       { n: 1, label: "장르 설정" },
                       { n: 2, label: "캐릭터" },
                       { n: 3, label: "문체·줄거리" },
                     ].map(({ n, label }) => (
                       <button key={n}
-                        style={{ flex: 1, padding: "10px 4px", background: formStep === n ? "#2d1f4e" : "#160f22", border: "none", borderRight: n < 3 ? "1px solid #2d2040" : "none", color: formStep === n ? "#c4b8ff" : "#5a4a6a", fontSize: 12, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontWeight: formStep === n ? 600 : 400, transition: "all 0.2s" }}
+                        style={{ flex: 1, padding: "10px 4px", background: formStep === n ? "#2d1f4e" : "rgba(19,16,32,0.8)", border: "none", borderRight: n < 3 ? "1px solid #2e2048" : "none", color: formStep === n ? "#c4b8ff" : "#6a5a8a", fontSize: 12, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontWeight: formStep === n ? 600 : 400, transition: "all 0.2s" }}
                         onClick={() => setFormStep(n)}>
                         <div style={{ fontSize: 10, marginBottom: 2, color: formStep === n ? "#7c3aed" : "#3a2a4a" }}>{n}단계</div>
                         {label}
@@ -898,7 +1036,7 @@ ${styleGuide}
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
                           {GENRES.map(g => (
                             <button key={g.id}
-                              style={{ border: `1.5px solid ${genre === g.id ? g.color : "#2d2040"}`, background: genre === g.id ? "#221738" : "#1a1228", color: genre === g.id ? "#fff" : "#c4b8d8", borderRadius: 12, padding: "12px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, transition: "all 0.2s", boxShadow: genre === g.id ? `0 0 12px ${g.color}44` : "none" }}
+                              style={{ border: `1.5px solid ${genre === g.id ? g.color : "#2e2048"}`, background: genre === g.id ? "#221738" : "rgba(28,21,48,0.9)", color: genre === g.id ? "#fff" : "#b8aed0", borderRadius: 12, padding: "12px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, transition: "all 0.2s", boxShadow: genre === g.id ? `0 0 12px ${g.color}44` : "none" }}
                               onClick={() => { setGenre(genre === g.id ? null : g.id); setSelectedTags([]); setSelectedBackground(null); setBlRole(null); setGlRole(null); }}>
                               {g.label}
                             </button>
@@ -940,7 +1078,7 @@ ${styleGuide}
                           {selectedTags.length > 0 && (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                               {selectedTags.map(tag => (
-                                <span key={tag} onClick={() => toggleTag(tag)} style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: "#c4b8ff", cursor: "pointer" }}>{tag} ✕</span>
+                                <span key={tag} onClick={() => toggleTag(tag)} style={{ background: "rgba(45,31,78,0.9)", border: "1px solid #7c3aed", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: "#c4b8ff", cursor: "pointer" }}>{tag} ✕</span>
                               ))}
                             </div>
                           )}
@@ -957,38 +1095,6 @@ ${styleGuide}
                   {/* ── 2단계: 캐릭터 ── */}
                   {formStep === 2 && (
                     <div>
-                      {/* BL 공수 설정 */}
-                      {genre === "bl" && (
-                        <div className="section">
-                          <div className="section-title">공수 설정</div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            {BL_ROLES.map(r => (
-                              <button key={r.id}
-                                style={{ flex: "1 1 40%", border: `1.5px solid ${blRole === r.id ? "#818cf8" : "#2d2040"}`, background: blRole === r.id ? "#1e1a3a" : "#1a1228", color: blRole === r.id ? "#c4b8ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
-                                onClick={() => setBlRole(blRole === r.id ? null : r.id)}>
-                                {r.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* GL 관계 설정 */}
-                      {genre === "gl" && (
-                        <div className="section">
-                          <div className="section-title">관계 설정</div>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            {GL_ROLES.map(r => (
-                              <button key={r.id}
-                                style={{ flex: 1, border: `1.5px solid ${glRole === r.id ? "#c084fc" : "#2d2040"}`, background: glRole === r.id ? "#1e1a3a" : "#1a1228", color: glRole === r.id ? "#e9d5ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
-                                onClick={() => setGlRole(glRole === r.id ? null : r.id)}>
-                                {r.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
                       <div className="section">
                         <div className="section-title">
                           {genre === "bl" ? "등장인물 (공/수 역할 지정)" : genre === "gl" ? "등장인물 (두 주인공)" : "등장인물"}
@@ -999,20 +1105,20 @@ ${styleGuide}
                             <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
                               {genre === "bl" ? (
                                 <select value={char.role} onChange={e => updateCharacter(char.id, "role", e.target.value)}
-                                  style={{ background: "#2d1f4e", border: "1px solid #818cf8", borderRadius: 6, padding: "5px 8px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, flexShrink: 0 }}>
+                                  style={{ background: "rgba(45,31,78,0.9)", border: "1px solid #818cf8", borderRadius: 6, padding: "5px 8px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, flexShrink: 0 }}>
                                   <option value="공">공</option>
                                   <option value="수">수</option>
                                   <option value="조연">조연</option>
                                 </select>
                               ) : genre === "gl" ? (
                                 <select value={char.role} onChange={e => updateCharacter(char.id, "role", e.target.value)}
-                                  style={{ background: "#2d1f4e", border: "1px solid #c084fc", borderRadius: 6, padding: "5px 8px", color: "#e9d5ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, flexShrink: 0 }}>
+                                  style={{ background: "rgba(45,31,78,0.9)", border: "1px solid #c084fc", borderRadius: 6, padding: "5px 8px", color: "#e9d5ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, flexShrink: 0 }}>
                                   <option value="주인공1">주인공1</option>
                                   <option value="주인공2">주인공2</option>
                                   <option value="조연">조연</option>
                                 </select>
                               ) : (
-                                <span style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Noto Serif KR', serif" }}
+                                <span style={{ background: "rgba(45,31,78,0.9)", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'Noto Serif KR', serif" }}
                                   onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>{char.role} ↕</span>
                               )}
                               <input className="input-field" style={{ flex: 1 }} placeholder="이름 (선택)" value={char.name} onChange={e => updateCharacter(char.id, "name", e.target.value)} />
@@ -1023,7 +1129,7 @@ ${styleGuide}
                             <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
                               {AGE_OPTIONS.map(a => (
                                 <button key={a}
-                                  style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${char.age === a ? accentColor : "#2d2040"}`, background: char.age === a ? "#2d1f4e" : "#1a1228", color: char.age === a ? "#c4b8ff" : "#7a6a8a", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.15s" }}
+                                  style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${char.age === a ? accentColor : "#2e2048"}`, background: char.age === a ? "#2d1f4e" : "rgba(28,21,48,0.9)", color: char.age === a ? "#c4b8ff" : "#7a6a9a", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.15s" }}
                                   onClick={() => updateCharacter(char.id, "age", char.age === a ? "" : a)}>
                                   {a}
                                 </button>
@@ -1031,7 +1137,7 @@ ${styleGuide}
                               <span style={{ width: "100%", height: 0 }} />
                               {GENDER_OPTIONS.map(g => (
                                 <button key={g}
-                                  style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${char.gender === g ? accentColor : "#2d2040"}`, background: char.gender === g ? "#2d1f4e" : "#1a1228", color: char.gender === g ? "#c4b8ff" : "#7a6a8a", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.15s" }}
+                                  style={{ padding: "4px 10px", borderRadius: 20, border: `1px solid ${char.gender === g ? accentColor : "#2e2048"}`, background: char.gender === g ? "#2d1f4e" : "rgba(28,21,48,0.9)", color: char.gender === g ? "#c4b8ff" : "#7a6a9a", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.15s" }}
                                   onClick={() => updateCharacter(char.id, "gender", char.gender === g ? "" : g)}>
                                   {g}
                                 </button>
@@ -1102,7 +1208,7 @@ ${styleGuide}
                                 style={pov === p.id ? { borderColor: accentColor } : {}}
                                 onClick={() => setPov(p.id)}>
                                 <div style={{ fontWeight: 600, fontSize: 13 }}>{p.label}</div>
-                                <div style={{ fontSize: 10, color: "#7a6a8a" }}>{p.desc}</div>
+                                <div style={{ fontSize: 10, color: "#7a6a9a" }}>{p.desc}</div>
                               </button>
                             ))}
                           </div>
@@ -1115,7 +1221,7 @@ ${styleGuide}
                                 style={rating === r.id ? { borderColor: r.id === "adult" ? "#f87171" : accentColor } : {}}
                                 onClick={() => setRating(r.id)}>
                                 <div style={{ fontWeight: 600, fontSize: 12, color: r.id === "adult" && rating === r.id ? "#fca5a5" : "inherit" }}>{r.label}</div>
-                                <div style={{ fontSize: 10, color: "#7a6a8a" }}>{r.desc}</div>
+                                <div style={{ fontSize: 10, color: "#7a6a9a" }}>{r.desc}</div>
                               </button>
                             ))}
                           </div>
@@ -1140,33 +1246,33 @@ ${styleGuide}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingTop: 8 }}>
                     <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13 }} onClick={resetForm}>← 처음으로</button>
                     <div style={{ fontSize: 13, color: "#7c3aed", fontWeight: 600 }}>{currentEpisode}화</div>
-                    <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13, borderColor: isEditing ? accentColor : "#2d2040", color: isEditing ? accentColor : "#9a8aaa" }}
+                    <button className="btn btn-outline" style={{ padding: "8px 14px", fontSize: 13, borderColor: isEditing ? accentColor : "#2e2048", color: isEditing ? accentColor : "#a89ec0" }}
                       onClick={() => { if (isEditing) setNovel(editedNovel); else setEditedNovel(novel); setIsEditing(!isEditing); }} disabled={loading}>
                       {isEditing ? "✅ 완료" : "✏️ 편집"}
                     </button>
                   </div>
 
-                  <div style={{ background: "#160f22", border: `1.5px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "24px 20px" }}>
-                    {loading && <div style={{ textAlign: "center", padding: "40px 0", color: "#5a4a6a" }}>
+                  <div style={{ background: "rgba(19,16,32,0.8)", border: `1.5px solid ${isEditing ? accentColor + "66" : "#2e2048"}`, borderRadius: 16, padding: "24px 20px" }}>
+                    {loading && <div style={{ textAlign: "center", padding: "40px 0", color: "#6a5a8a" }}>
                       <div style={{ fontSize: 28, marginBottom: 12 }}>✍️</div>
                       <div style={{ marginBottom: 8 }}>이야기를 구성하고 있어요...</div>
                       <div style={{ fontSize: 12, color: "#3a2a4a" }}>설계 → 집필 2단계로 더 좋은 글을 써드릴게요</div>
                     </div>}
                     {!loading && isEditing && <textarea className="novel-editor" value={editedNovel} onChange={e => setEditedNovel(e.target.value)} style={{ height: Math.max(300, editedNovel.split("\n").length * 36) }} />}
-                    {!loading && !isEditing && novel && <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
+                    {!loading && !isEditing && novel && <div style={{ lineHeight: 2.2, fontSize: 16, color: "#e8e2f5", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
                   </div>
 
                   {!loading && novel && (
                     <>
-                      <div style={{ margin: "14px 0", padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
-                        <div style={{ fontSize: 12, color: "#7a6a8a", marginBottom: 8 }}>🖼️ 시리즈 커버 이미지</div>
+                      <div style={{ margin: "14px 0", padding: "12px 14px", background: "rgba(19,16,32,0.8)", borderRadius: 10, border: "1px solid #2e2048" }}>
+                        <div style={{ fontSize: 12, color: "#7a6a9a", marginBottom: 8 }}>🖼️ 시리즈 커버 이미지</div>
                         {coverImage ? (
                           <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
                             <img src={coverImage} alt="cover" style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 8 }} />
-                            <button style={{ position: "absolute", top: 6, right: 6, background: "#0d0a14cc", border: "1px solid #2d2040", borderRadius: 6, color: "#f87171", fontSize: 11, padding: "3px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }} onClick={() => setCoverImage(null)}>삭제</button>
+                            <button style={{ position: "absolute", top: 6, right: 6, background: "rgba(10,8,18,0.85)", border: "1px solid #2e2048", borderRadius: 6, color: "#f87171", fontSize: 11, padding: "3px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }} onClick={() => setCoverImage(null)}>삭제</button>
                           </div>
                         ) : (
-                          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "10px", border: "1.5px dashed #2d2040", borderRadius: 8, color: "#5a4a6a", fontSize: 13 }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "10px", border: "1.5px dashed #2e2048", borderRadius: 8, color: "#6a5a8a", fontSize: 13 }}>
                             <input type="file" accept="image/*" style={{ display: "none" }}
                               onChange={async e => {
                                 const file = e.target.files?.[0];
@@ -1180,14 +1286,14 @@ ${styleGuide}
                         )}
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "12px 14px", background: "#160f22", borderRadius: 10, border: "1px solid #2d2040" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "12px 14px", background: "rgba(19,16,32,0.8)", borderRadius: 10, border: "1px solid #2e2048" }}>
                         <label style={{ position: "relative", width: 44, height: 24, cursor: "pointer", flexShrink: 0 }}>
                           <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={isPublic} onChange={e => setIsPublic(e.target.checked)} />
-                          <span style={{ position: "absolute", inset: 0, background: isPublic ? "#7c3aed" : "#2d2040", borderRadius: 24, transition: "0.3s" }}>
+                          <span style={{ position: "absolute", inset: 0, background: isPublic ? "#7c3aed" : "#2e2048", borderRadius: 24, transition: "0.3s" }}>
                             <span style={{ position: "absolute", height: 18, width: 18, left: isPublic ? 23 : 3, bottom: 3, background: "white", borderRadius: "50%", transition: "0.3s" }} />
                           </span>
                         </label>
-                        <span style={{ fontSize: 13, color: "#c4b8d8" }}>{isPublic ? "🌍 이 화 공개" : "🔒 이 화 비공개"}</span>
+                        <span style={{ fontSize: 13, color: "#b8aed0" }}>{isPublic ? "🌍 이 화 공개" : "🔒 이 화 비공개"}</span>
                       </div>
 
                       {autoSaveMsg && <div style={{ textAlign: "right", fontSize: 11, color: "#6ee7b7", marginBottom: 6 }}>{autoSaveMsg}</div>}
@@ -1202,7 +1308,7 @@ ${styleGuide}
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                         <button className="btn btn-outline" onClick={saveAsText} style={{ fontSize: 13 }}>📄 txt</button>
-                        <button className="btn btn-outline" onClick={copyToClipboard} style={{ fontSize: 13, borderColor: copied ? "#86efac" : "#2d2040", color: copied ? "#86efac" : "#9a8aaa" }}>
+                        <button className="btn btn-outline" onClick={copyToClipboard} style={{ fontSize: 13, borderColor: copied ? "#86efac" : "#2e2048", color: copied ? "#86efac" : "#a89ec0" }}>
                           {copied ? "✅" : "📋 복사"}
                         </button>
                       </div>
@@ -1222,18 +1328,18 @@ ${styleGuide}
               <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 12, scrollbarWidth: "none" }}>
                 {["전체", "💕 로맨스", "🧙 판타지", "✨ 현대판타지", "⚔️ 무협", "🔪 스릴러/호러", "🔍 미스터리", "🚀 SF", "🏙️ 현대물", "📜 역사", "💙 BL", "💜 GL"].map(g => (
                   <button key={g}
-                    style={{ flexShrink: 0, padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${exploreGenre === g ? "#7c3aed" : "#2d2040"}`, background: exploreGenre === g ? "#2d1f4e" : "#1a1228", color: exploreGenre === g ? "#c4b8ff" : "#7a6a8a", fontSize: 12, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.2s", whiteSpace: "nowrap" }}
+                    style={{ flexShrink: 0, padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${exploreGenre === g ? "#7c3aed" : "#2e2048"}`, background: exploreGenre === g ? "#2d1f4e" : "rgba(28,21,48,0.9)", color: exploreGenre === g ? "#c4b8ff" : "#7a6a9a", fontSize: 12, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", transition: "all 0.2s", whiteSpace: "nowrap" }}
                     onClick={() => setExploreGenre(g)}>
                     {g}
                   </button>
                 ))}
               </div>
-              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 16 }}>
+              <div style={{ display: "flex", borderBottom: "1px solid #2e2048", marginBottom: 16 }}>
                 <button className={`tab-btn${exploreTab === "latest" ? " active" : ""}`} onClick={() => setExploreTab("latest")}>🆕 최신</button>
                 <button className={`tab-btn${exploreTab === "popular" ? " active" : ""}`} onClick={() => setExploreTab("popular")}>🔥 인기</button>
               </div>
               {publicNovels.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                <div style={{ textAlign: "center", padding: "60px 0", color: "#6a5a8a" }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
                   <div>{exploreGenre !== "전체" ? `${exploreGenre} 장르의 소설이 없어요` : "아직 공개된 소설이 없어요"}</div>
                 </div>
@@ -1250,19 +1356,19 @@ ${styleGuide}
           {/* ── 서재 ── */}
           {view === "library" && (
             <div className="fade-in">
-              <div style={{ display: "flex", borderBottom: "1px solid #2d2040", marginBottom: 16 }}>
+              <div style={{ display: "flex", borderBottom: "1px solid #2e2048", marginBottom: 16 }}>
                 <button className={`tab-btn${libraryTab === "my" ? " active" : ""}`} onClick={() => setLibraryTab("my")}>📝 내 작품</button>
                 <button className={`tab-btn${libraryTab === "favorites" ? " active" : ""}`} onClick={() => { setLibraryTab("favorites"); if (user) fetchFavoriteNovels(); }}>🔖 선호작</button>
               </div>
               {!user ? (
-                <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                <div style={{ textAlign: "center", padding: "60px 0", color: "#6a5a8a" }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
                   <div style={{ marginBottom: 20 }}>로그인하면 서재를 이용할 수 있어요</div>
                   <button className="btn btn-primary" style={{ padding: "12px 28px" }} onClick={() => setShowAuth(true)}>로그인하기</button>
                 </div>
               ) : libraryTab === "my" ? (
                 myNovels.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                  <div style={{ textAlign: "center", padding: "60px 0", color: "#6a5a8a" }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
                     <div>아직 저장된 소설이 없어요</div>
                   </div>
@@ -1275,7 +1381,7 @@ ${styleGuide}
                 ))
               ) : (
                 favoriteNovels.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
+                  <div style={{ textAlign: "center", padding: "60px 0", color: "#6a5a8a" }}>
                     <div style={{ fontSize: 32, marginBottom: 12, lineHeight: 1 }}>🔖</div>
                     <div>아직 선호작이 없어요</div>
                   </div>

@@ -34,25 +34,25 @@ export default function NovelCard({ n, showActions = false, user, onOpen, onSeri
   if (showActions) {
     return (
       <div
-        style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden" }}
+        style={{ background: "rgba(19,16,32,0.85)", border: "1.5px solid #2e2048", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden" }}
         onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
-        onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
+        onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2e2048")}
         onClick={handleClick}
       >
         {coverImg ? (
-          <div style={{ width: "100%", background: "#0d0a14", display: "flex", justifyContent: "center" }}>
+          <div style={{ width: "100%", background: "rgba(10,8,18,1)", display: "flex", justifyContent: "center" }}>
             <img src={coverImg} alt={displayTitle} style={{ width: "100%", maxHeight: 200, objectFit: "contain" }} />
           </div>
         ) : (
-          <div style={{ height: 80, background: "#1a1228", borderBottom: "1px dashed #2d2040", display: "flex", alignItems: "center", justifyContent: "center", color: "#3a2a4a", fontSize: 28 }}>📖</div>
+          <div style={{ height: 80, background: "rgba(28,21,48,0.9)", borderBottom: "1px dashed #2e2048", display: "flex", alignItems: "center", justifyContent: "center", color: "#3a2a4a", fontSize: 28 }}>📖</div>
         )}
         <div style={{ padding: "14px 16px" }}>
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayTitle}</div>
           <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
-            {n.genre && <span style={{ fontSize: 10, background: "#2d1f4e", color: "#a78bfa", borderRadius: 20, padding: "2px 8px" }}>{n.genre}</span>}
+            {n.genre && <span style={{ fontSize: 10, background: "rgba(45,31,78,0.9)", color: "#a78bfa", borderRadius: 20, padding: "2px 8px" }}>{n.genre}</span>}
             {episodes.length > 0 && <span style={{ fontSize: 10, background: "#1a2d1f", color: "#6ee7b7", borderRadius: 20, padding: "2px 8px" }}>총 {episodes.length}화</span>}
           </div>
-          <div style={{ fontSize: 13, color: "#9a8aaa", lineHeight: 1.7 }}>{preview}</div>
+          <div style={{ fontSize: 13, color: "#a89ec0", lineHeight: 1.7 }}>{preview}</div>
         </div>
       </div>
     );
@@ -61,12 +61,12 @@ export default function NovelCard({ n, showActions = false, user, onOpen, onSeri
   // 둘러보기 카드
   return (
     <div
-      style={{ background: "#160f22", border: "1.5px solid #2d2040", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden", display: "flex" }}
+      style={{ background: "rgba(19,16,32,0.85)", border: "1.5px solid #2e2048", borderRadius: 14, marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s", overflow: "hidden", display: "flex" }}
       onMouseOver={(e) => (e.currentTarget.style.borderColor = "#4a3570")}
-      onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2d2040")}
+      onMouseOut={(e) => (e.currentTarget.style.borderColor = "#2e2048")}
       onClick={handleClick}
     >
-      <div style={{ width: 110, flexShrink: 0, background: "#0d0a14", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <div style={{ width: 110, flexShrink: 0, background: "rgba(10,8,18,1)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         {coverImg
           ? <img src={coverImg} alt={displayTitle} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           : <div style={{ color: "#3a2a4a", fontSize: 32 }}>📖</div>
@@ -76,17 +76,17 @@ export default function NovelCard({ n, showActions = false, user, onOpen, onSeri
         <div>
           <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayTitle}</div>
           <div style={{ display: "flex", gap: 4, marginBottom: 7, flexWrap: "wrap" }}>
-            {n.genre && <span style={{ fontSize: 10, background: "#2d1f4e", color: "#a78bfa", borderRadius: 20, padding: "2px 7px" }}>{n.genre}</span>}
+            {n.genre && <span style={{ fontSize: 10, background: "rgba(45,31,78,0.9)", color: "#a78bfa", borderRadius: 20, padding: "2px 7px" }}>{n.genre}</span>}
             {episodes.length > 0 && <span style={{ fontSize: 10, background: "#1a2d1f", color: "#6ee7b7", borderRadius: 20, padding: "2px 7px" }}>총 {episodes.length}화</span>}
           </div>
-          <div style={{ fontSize: 12, color: "#9a8aaa", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <div style={{ fontSize: 12, color: "#a89ec0", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {preview}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "#5a4a6a", marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "#6a5a8a", marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
           <span>👁 {n.views || 0}</span>
           <button
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: n.is_favorited ? "#f472b6" : "#5a4a6a", fontFamily: "'Noto Serif KR', serif", padding: 0 }}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: n.is_favorited ? "#f472b6" : "#6a5a8a", fontFamily: "'Noto Serif KR', serif", padding: 0 }}
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(n); }}
           >
             {n.is_favorited ? "🔖 선호작" : "📎 선호작"}
