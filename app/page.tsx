@@ -6,6 +6,7 @@ import AuthModal from "./components/AuthModal";
 import NovelCard from "./components/NovelCard";
 import SeriesDetail from "./components/SeriesDetail";
 import ReadingView from "./components/ReadingView";
+import PaymentModal from "./components/PaymentModal";
 
 export default function Home() {
   const supabase = createClient();
@@ -20,6 +21,7 @@ export default function Home() {
   const [authLoading, setAuthLoading] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showPayment, setShowPayment] = useState(false); // 결제 모달 (지금은 비활성)
   const [nicknameInput, setNicknameInput] = useState("");
   const [nicknameSaving, setNicknameSaving] = useState(false);
 
@@ -383,31 +385,21 @@ export default function Home() {
 
   // ── 하루 생성 횟수 체크 ────────────────────────────────
   function checkAndIncrementCount(): boolean {
+    if (user) return true; // 로그인 시 무제한
     const today = new Date().toDateString();
     const stored = localStorage.getItem("novella_gen");
     const data = stored ? JSON.parse(stored) : { date: today, count: 0 };
     if (data.date !== today) { data.date = today; data.count = 0; }
-    const limit = user ? 10 : 3;
-    if (data.count >= limit) return false;
+    if (data.count >= 3) return false;
     data.count += 1;
     localStorage.setItem("novella_gen", JSON.stringify(data));
     return true;
   }
 
-  function getRemainingCount(): number {
-    const today = new Date().toDateString();
-    const stored = localStorage.getItem("novella_gen");
-    const data = stored ? JSON.parse(stored) : { date: today, count: 0 };
-    if (data.date !== today) return user ? 10 : 3;
-    return Math.max(0, (user ? 10 : 3) - data.count);
-  }
-
   async function generateNovel() {
     if (!checkAndIncrementCount()) {
-      setError(user
-        ? "오늘 생성 횟수(10회)를 다 사용했어요. 내일 다시 시도해주세요! 🌙"
-        : "비로그인은 하루 3회까지 무료예요. 로그인하면 10회까지 가능해요!");
-      setShowAuth(!user);
+      setError("무료 체험은 하루 3회예요. 로그인하면 무제한으로 쓸 수 있어요!");
+      setShowAuth(true);
       return;
     }
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false); setSaveMsg("");
@@ -944,6 +936,20 @@ ${styleGuide}
           />
         )}
 
+        {/* 결제 모달 - 활성화 시 showPayment로 제어 */}
+        {showPayment && (
+          <PaymentModal
+            plan="day"
+            onClose={() => setShowPayment(false)}
+            onSuccess={() => {
+              setShowPayment(false);
+              // 결제 성공 시 횟수 추가 (추후 구현)
+              const today = new Date().toDateString();
+              localStorage.setItem("novella_gen", JSON.stringify({ date: today, count: 0 }));
+            }}
+          />
+        )}
+
         {showProfile && (
           <div style={{ position: "fixed", inset: 0, background: "#000a", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowProfile(false)}>
             <div style={{ background: "rgba(28,21,48,0.9)", borderRadius: "20px 20px 0 0", padding: "28px 20px 40px", width: "100%", maxWidth: 480 }} onClick={e => e.stopPropagation()}>
@@ -1296,12 +1302,6 @@ ${styleGuide}
                       </div>
 
                       {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {error}</div>}
-
-                      {/* 남은 횟수 표시 */}
-                      <div style={{ textAlign: "center", fontSize: 11, color: "#8878b0", marginBottom: 10 }}>
-                        오늘 남은 생성 횟수: <span style={{ color: "#d4bfff", fontWeight: 600 }}>{getRemainingCount()}회</span>
-                        {!user && <span style={{ color: "#8878b0" }}> · 로그인하면 10회</span>}
-                      </div>
 
                       <div style={{ display: "flex", gap: 8 }}>
                         <button className="btn btn-outline" style={{ flex: 1, padding: 14 }} onClick={() => setFormStep(2)}>← 이전</button>
