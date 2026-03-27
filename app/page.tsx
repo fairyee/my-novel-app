@@ -381,7 +381,35 @@ export default function Home() {
     return base + genreExtra;
   }
 
+  // ── 하루 생성 횟수 체크 ────────────────────────────────
+  function checkAndIncrementCount(): boolean {
+    const today = new Date().toDateString();
+    const stored = localStorage.getItem("novella_gen");
+    const data = stored ? JSON.parse(stored) : { date: today, count: 0 };
+    if (data.date !== today) { data.date = today; data.count = 0; }
+    const limit = user ? 10 : 3;
+    if (data.count >= limit) return false;
+    data.count += 1;
+    localStorage.setItem("novella_gen", JSON.stringify(data));
+    return true;
+  }
+
+  function getRemainingCount(): number {
+    const today = new Date().toDateString();
+    const stored = localStorage.getItem("novella_gen");
+    const data = stored ? JSON.parse(stored) : { date: today, count: 0 };
+    if (data.date !== today) return user ? 10 : 3;
+    return Math.max(0, (user ? 10 : 3) - data.count);
+  }
+
   async function generateNovel() {
+    if (!checkAndIncrementCount()) {
+      setError(user
+        ? "오늘 생성 횟수(10회)를 다 사용했어요. 내일 다시 시도해주세요! 🌙"
+        : "비로그인은 하루 3회까지 무료예요. 로그인하면 10회까지 가능해요!");
+      setShowAuth(!user);
+      return;
+    }
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false); setSaveMsg("");
 
     const ratingLabel = rating === "all" ? "전체가" : rating === "teen" ? "15세 이상" : "성인 (암시 포함)";
@@ -1263,6 +1291,12 @@ ${styleGuide}
                       </div>
 
                       {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {error}</div>}
+
+                      {/* 남은 횟수 표시 */}
+                      <div style={{ textAlign: "center", fontSize: 11, color: "#8878b0", marginBottom: 10 }}>
+                        오늘 남은 생성 횟수: <span style={{ color: "#d4bfff", fontWeight: 600 }}>{getRemainingCount()}회</span>
+                        {!user && <span style={{ color: "#8878b0" }}> · 로그인하면 10회</span>}
+                      </div>
 
                       <div style={{ display: "flex", gap: 8 }}>
                         <button className="btn btn-outline" style={{ flex: 1, padding: 14 }} onClick={() => setFormStep(2)}>← 이전</button>
