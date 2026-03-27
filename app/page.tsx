@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "./lib/supabase";
-import { Novel, Profile, Comment, Character, GENRES, PRESET_TAGS, STYLES, ENDINGS, RATINGS, POVS } from "./types";
+import { Novel, Profile, Comment, Character, GENRES, GENRE_TAGS, BACKGROUNDS, BL_ROLES, GL_ROLES, STYLES, ENDINGS, RATINGS, POVS } from "./types";
 import AuthModal from "./components/AuthModal";
 import NovelCard from "./components/NovelCard";
 import SeriesDetail from "./components/SeriesDetail";
@@ -47,9 +47,13 @@ export default function Home() {
   const [commentLoading, setCommentLoading] = useState(false);
 
   // ── Create form ───────────────────────────────────────
+  const [formStep, setFormStep] = useState(1); // 1: 장르/설정, 2: 캐릭터, 3: 문체/줄거리
   const [genre, setGenre] = useState<string | null>(null);
+  const [selectedBackground, setSelectedBackground] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
+  const [blRole, setBlRole] = useState<string | null>(null); // BL 공수
+  const [glRole, setGlRole] = useState<string | null>(null); // GL 역할
   const [style, setStyle] = useState<string | null>(null);
   const [ending, setEnding] = useState<string | null>(null);
   const [rating, setRating] = useState("all");
@@ -379,6 +383,9 @@ export default function Home() {
     const ratingLabel = rating === "all" ? "전체가" : rating === "teen" ? "15세 이상" : "성인 (암시 포함)";
     const styleGuide = getStyleGuide();
     const charDesc = characters.filter(c => c.name || c.desc).map(c => `- ${c.role} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`).join("\n");
+    const blGlInfo = genre === "bl" && blRole ? `BL 공수: ${BL_ROLES.find(r => r.id === blRole)?.label || ""}` :
+                     genre === "gl" && glRole ? `GL 관계: ${GL_ROLES.find(r => r.id === glRole)?.label || ""}` : "";
+    const backgroundInfo = selectedBackground ? `배경: ${selectedBackground}` : "";
     const povLabel = pov === "first" ? "1인칭 (나는...)" : "3인칭 제한 시점";
     const styleLabel = STYLES.find(s => s.id === style)?.label || "";
     const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "";
@@ -392,6 +399,8 @@ ${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
 ${title ? `이번 화 제목: ${title}` : ""}
 장르: ${selectedGenre?.label || "자유"}
 태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
+${backgroundInfo}
+${blGlInfo}
 ${styleLabel ? `문체 방향: ${styleLabel}` : ""}
 ${endingLabel ? `결말 방향: ${endingLabel}` : ""}
 수위: ${ratingLabel}
@@ -657,9 +666,11 @@ ${styleGuide}
   }
 
   function resetForm() {
-    setStep("form"); setNovel(""); setEditedNovel(""); setIsEditing(false);
+    setStep("form"); setFormStep(1); setNovel(""); setEditedNovel(""); setIsEditing(false);
     setCurrentSeriesId(null); setCurrentEpisode(1); setSaveMsg("");
     setTitle(""); setSynopsis(""); setCoverImage(null);
+    setGenre(null); setSelectedBackground(null); setSelectedTags([]);
+    setBlRole(null); setGlRole(null); setStyle(null); setEnding(null);
   }
 
   function toggleTag(tag: string) { setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]); }
@@ -840,6 +851,7 @@ ${styleGuide}
             <>
               {step === "form" && (
                 <div className="fade-in">
+                  {/* 연재 중 배너 */}
                   {currentSeriesId && (
                     <div style={{ background: "#1a1228", border: "1px solid #7c3aed", borderRadius: 10, padding: "10px 14px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
@@ -850,125 +862,249 @@ ${styleGuide}
                     </div>
                   )}
 
-                  <div className="section">
-                    <div className="section-title">시리즈 제목</div>
-                    <input className="input-field" placeholder="연재 시 입력 (비우면 1화 제목 사용)" value={seriesTitle} onChange={e => setSeriesTitle(e.target.value)} />
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">장르</div>
-                    <div className="genre-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-                      {GENRES.map(g => (
-                        <button key={g.id} className={`genre-btn${genre === g.id ? " selected" : ""}`}
-                          style={genre === g.id ? { borderColor: g.color, boxShadow: `0 0 12px ${g.color}33` } : {}}
-                          onClick={() => setGenre(genre === g.id ? null : g.id)}>{g.label}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">태그</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
-                      {PRESET_TAGS.map(tag => (
-                        <button key={tag} className={`tag-btn${selectedTags.includes(tag) ? " selected" : ""}`} onClick={() => toggleTag(tag)}>{tag}</button>
-                      ))}
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input className="input-field" style={{ resize: "none" }} placeholder="직접 입력 후 엔터" value={customTag}
-                        onChange={e => setCustomTag(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustomTag(); } }} />
-                      <button className="btn btn-outline" onClick={addCustomTag} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>추가</button>
-                    </div>
-                    {selectedTags.length > 0 && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                        {selectedTags.map(tag => (
-                          <span key={tag} onClick={() => toggleTag(tag)} style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: "#c4b8ff", cursor: "pointer" }}>{tag} ✕</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">문체</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {STYLES.map(s => (
-                        <button key={s.id} className={`opt-btn${style === s.id ? " selected" : ""}`}
-                          style={{ ...(style === s.id ? { borderColor: accentColor } : {}), flex: "1 1 40%" }}
-                          onClick={() => setStyle(style === s.id ? null : s.id)}>{s.label}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">결말</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {ENDINGS.map(e => (
-                        <button key={e.id} className={`opt-btn${ending === e.id ? " selected" : ""}`}
-                          style={ending === e.id ? { borderColor: accentColor } : {}}
-                          onClick={() => setEnding(ending === e.id ? null : e.id)}>{e.label}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-                    <div style={{ flex: 1 }}>
-                      <div className="section-title">시점</div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {POVS.map(p => (
-                          <button key={p.id} className={`opt-btn${pov === p.id ? " selected" : ""}`}
-                            style={pov === p.id ? { borderColor: accentColor } : {}}
-                            onClick={() => setPov(p.id)}>
-                            <div style={{ fontWeight: 600, fontSize: 13 }}>{p.label}</div>
-                            <div style={{ fontSize: 10, color: "#7a6a8a" }}>{p.desc}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="section-title">수위</div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {RATINGS.map(r => (
-                          <button key={r.id} className={`opt-btn${rating === r.id ? " selected" : ""}`}
-                            style={rating === r.id ? { borderColor: r.id === "adult" ? "#f87171" : accentColor } : {}}
-                            onClick={() => setRating(r.id)}>
-                            <div style={{ fontWeight: 600, fontSize: 12, color: r.id === "adult" && rating === r.id ? "#fca5a5" : "inherit" }}>{r.label}</div>
-                            <div style={{ fontSize: 10, color: "#7a6a8a" }}>{r.desc}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">이번 화 제목</div>
-                    <input className="input-field" placeholder="비우면 AI가 정해요" value={title} onChange={e => setTitle(e.target.value)} />
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">줄거리 / 배경</div>
-                    <textarea className="input-field" rows={3} placeholder="예: 기억을 잃고 낯선 도시에서 깨어난 남자의 이야기" value={synopsis} onChange={e => setSynopsis(e.target.value)} />
-                  </div>
-
-                  <div className="section">
-                    <div className="section-title">등장인물</div>
-                    {characters.map((char, idx) => (
-                      <div key={char.id} className="char-card">
-                        <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                          <span style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}
-                            onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>{char.role} ↕</span>
-                          <input className="input-field" style={{ flex: 1 }} placeholder="이름" value={char.name} onChange={e => updateCharacter(char.id, "name", e.target.value)} />
-                          {idx > 0 && <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif", flexShrink: 0 }} onClick={() => removeCharacter(char.id)}>삭제</button>}
-                        </div>
-                        <textarea className="input-field" rows={2} placeholder="캐릭터 특징" value={char.desc} onChange={e => updateCharacter(char.id, "desc", e.target.value)} />
-                      </div>
+                  {/* 3단계 탭 */}
+                  <div style={{ display: "flex", marginBottom: 24, gap: 0, borderRadius: 12, overflow: "hidden", border: "1px solid #2d2040" }}>
+                    {[
+                      { n: 1, label: "장르 설정" },
+                      { n: 2, label: "캐릭터" },
+                      { n: 3, label: "문체·줄거리" },
+                    ].map(({ n, label }) => (
+                      <button key={n}
+                        style={{ flex: 1, padding: "10px 4px", background: formStep === n ? "#2d1f4e" : "#160f22", border: "none", borderRight: n < 3 ? "1px solid #2d2040" : "none", color: formStep === n ? "#c4b8ff" : "#5a4a6a", fontSize: 12, cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontWeight: formStep === n ? 600 : 400, transition: "all 0.2s" }}
+                        onClick={() => setFormStep(n)}>
+                        <div style={{ fontSize: 10, marginBottom: 2, color: formStep === n ? "#7c3aed" : "#3a2a4a" }}>{n}단계</div>
+                        {label}
+                      </button>
                     ))}
-                    {characters.length < 5 && <button className="btn btn-outline" onClick={addCharacter} style={{ width: "100%", marginTop: 4 }}>+ 캐릭터 추가</button>}
                   </div>
 
-                  {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {error}</div>}
-                  <button className="btn btn-primary" style={{ width: "100%", padding: 16, fontSize: 16, borderRadius: 14 }} onClick={generateNovel} disabled={loading}>
-                    {loading ? <><span className="spinner" /> 생성 중...</> : `✨ ${currentEpisode}화 생성하기`}
-                  </button>
+                  {/* ── 1단계: 장르 설정 ── */}
+                  {formStep === 1 && (
+                    <div>
+                      <div className="section">
+                        <div className="section-title">시리즈 제목</div>
+                        <input className="input-field" placeholder="연재 시 입력 (비우면 1화 제목 사용)" value={seriesTitle} onChange={e => setSeriesTitle(e.target.value)} />
+                      </div>
+
+                      <div className="section">
+                        <div className="section-title">장르 (필수)</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+                          {GENRES.map(g => (
+                            <button key={g.id}
+                              style={{ border: `1.5px solid ${genre === g.id ? g.color : "#2d2040"}`, background: genre === g.id ? "#221738" : "#1a1228", color: genre === g.id ? "#fff" : "#c4b8d8", borderRadius: 12, padding: "12px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 14, transition: "all 0.2s", boxShadow: genre === g.id ? `0 0 12px ${g.color}44` : "none" }}
+                              onClick={() => { setGenre(genre === g.id ? null : g.id); setSelectedTags([]); setSelectedBackground(null); setBlRole(null); setGlRole(null); }}>
+                              {g.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* BL 공수 선택 */}
+                      {genre === "bl" && (
+                        <div className="section">
+                          <div className="section-title">공수 설정</div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {BL_ROLES.map(r => (
+                              <button key={r.id}
+                                style={{ flex: "1 1 40%", border: `1.5px solid ${blRole === r.id ? "#818cf8" : "#2d2040"}`, background: blRole === r.id ? "#1e1a3a" : "#1a1228", color: blRole === r.id ? "#c4b8ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
+                                onClick={() => setBlRole(blRole === r.id ? null : r.id)}>
+                                {r.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* GL 역할 선택 */}
+                      {genre === "gl" && (
+                        <div className="section">
+                          <div className="section-title">관계 설정</div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            {GL_ROLES.map(r => (
+                              <button key={r.id}
+                                style={{ flex: 1, border: `1.5px solid ${glRole === r.id ? "#c084fc" : "#2d2040"}`, background: glRole === r.id ? "#1e1a3a" : "#1a1228", color: glRole === r.id ? "#e9d5ff" : "#9a8aaa", borderRadius: 10, padding: "10px 8px", cursor: "pointer", fontFamily: "'Noto Serif KR', serif", fontSize: 13, transition: "all 0.2s" }}
+                                onClick={() => setGlRole(glRole === r.id ? null : r.id)}>
+                                {r.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 배경 */}
+                      {genre && BACKGROUNDS[genre] && (
+                        <div className="section">
+                          <div className="section-title">배경</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                            {BACKGROUNDS[genre].map(bg => (
+                              <button key={bg}
+                                className={`tag-btn${selectedBackground === bg ? " selected" : ""}`}
+                                onClick={() => setSelectedBackground(selectedBackground === bg ? null : bg)}>
+                                {bg}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 장르별 태그 */}
+                      {genre && GENRE_TAGS[genre] && (
+                        <div className="section">
+                          <div className="section-title">클리셰 / 태그</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 10 }}>
+                            {GENRE_TAGS[genre].map(tag => (
+                              <button key={tag} className={`tag-btn${selectedTags.includes(tag) ? " selected" : ""}`} onClick={() => toggleTag(tag)}>{tag}</button>
+                            ))}
+                          </div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input className="input-field" style={{ resize: "none" }} placeholder="직접 입력 후 엔터" value={customTag}
+                              onChange={e => setCustomTag(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustomTag(); } }} />
+                            <button className="btn btn-outline" onClick={addCustomTag} style={{ whiteSpace: "nowrap", flexShrink: 0 }}>추가</button>
+                          </div>
+                          {selectedTags.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                              {selectedTags.map(tag => (
+                                <span key={tag} onClick={() => toggleTag(tag)} style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 20, padding: "4px 10px", fontSize: 12, color: "#c4b8ff", cursor: "pointer" }}>{tag} ✕</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <button className="btn btn-primary" style={{ width: "100%", padding: 14, fontSize: 15, borderRadius: 12 }}
+                        onClick={() => setFormStep(2)} disabled={!genre}>
+                        다음 → 캐릭터 설정
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ── 2단계: 캐릭터 ── */}
+                  {formStep === 2 && (
+                    <div>
+                      <div className="section">
+                        <div className="section-title">
+                          {genre === "bl" ? "등장인물 (공/수 구분 입력)" : genre === "gl" ? "등장인물 (두 주인공)" : "등장인물"}
+                        </div>
+                        {characters.map((char, idx) => (
+                          <div key={char.id} className="char-card">
+                            <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                              {genre === "bl" ? (
+                                <select
+                                  value={char.role}
+                                  onChange={e => updateCharacter(char.id, "role", e.target.value)}
+                                  style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 8px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
+                                  <option value="공">공</option>
+                                  <option value="수">수</option>
+                                  <option value="조연">조연</option>
+                                </select>
+                              ) : genre === "gl" ? (
+                                <select
+                                  value={char.role}
+                                  onChange={e => updateCharacter(char.id, "role", e.target.value)}
+                                  style={{ background: "#2d1f4e", border: "1px solid #c084fc", borderRadius: 6, padding: "5px 8px", color: "#e9d5ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
+                                  <option value="주인공1">주인공1</option>
+                                  <option value="주인공2">주인공2</option>
+                                  <option value="조연">조연</option>
+                                </select>
+                              ) : (
+                                <span style={{ background: "#2d1f4e", border: "1px solid #7c3aed", borderRadius: 6, padding: "5px 10px", color: "#c4b8ff", fontFamily: "'Noto Serif KR', serif", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}
+                                  onClick={() => updateCharacter(char.id, "role", char.role === "주인공" ? "조연" : "주인공")}>{char.role} ↕</span>
+                              )}
+                              <input className="input-field" style={{ flex: 1 }} placeholder="이름" value={char.name} onChange={e => updateCharacter(char.id, "name", e.target.value)} />
+                              {idx > 0 && <button style={{ background: "transparent", border: "1px solid #3d1f1f", color: "#f87171", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontFamily: "'Noto Serif KR', serif", flexShrink: 0 }} onClick={() => removeCharacter(char.id)}>삭제</button>}
+                            </div>
+                            <textarea className="input-field" rows={2} placeholder={genre === "bl" ? "성격, 외모, 특징 (예: 차갑고 도도한 재벌 3세)" : "캐릭터 특징"} value={char.desc} onChange={e => updateCharacter(char.id, "desc", e.target.value)} />
+                          </div>
+                        ))}
+                        {characters.length < 5 && <button className="btn btn-outline" onClick={addCharacter} style={{ width: "100%", marginTop: 4 }}>+ 캐릭터 추가</button>}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button className="btn btn-outline" style={{ flex: 1, padding: 14 }} onClick={() => setFormStep(1)}>← 이전</button>
+                        <button className="btn btn-primary" style={{ flex: 2, padding: 14, fontSize: 15 }} onClick={() => setFormStep(3)}>다음 → 문체·줄거리</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── 3단계: 문체·줄거리 ── */}
+                  {formStep === 3 && (
+                    <div>
+                      <div className="section">
+                        <div className="section-title">이번 화 제목</div>
+                        <input className="input-field" placeholder="비우면 AI가 정해요" value={title} onChange={e => setTitle(e.target.value)} />
+                      </div>
+
+                      <div className="section">
+                        <div className="section-title">줄거리 / 배경 설명</div>
+                        <textarea className="input-field" rows={4} placeholder={
+                          genre === "bl" ? "예: 차갑고 오만한 선배와 매일 부딪히던 후배가 어느 날 학교 옥상에서 비를 피하게 되고..." :
+                          genre === "gl" ? "예: 전직 형사인 그녀와 용의자인 그녀가 같은 셰어하우스에 살게 되면서..." :
+                          "예: 기억을 잃고 낯선 도시에서 깨어난 그녀, 유일한 단서는 낯선 이름이 적힌 열쇠뿐이었다"
+                        } value={synopsis} onChange={e => setSynopsis(e.target.value)} />
+                      </div>
+
+                      <div className="section">
+                        <div className="section-title">문체</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {STYLES.map(s => (
+                            <button key={s.id} className={`opt-btn${style === s.id ? " selected" : ""}`}
+                              style={{ ...(style === s.id ? { borderColor: accentColor } : {}), flex: "1 1 40%" }}
+                              onClick={() => setStyle(style === s.id ? null : s.id)}>{s.label}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="section">
+                        <div className="section-title">결말 방향</div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          {ENDINGS.map(e => (
+                            <button key={e.id} className={`opt-btn${ending === e.id ? " selected" : ""}`}
+                              style={ending === e.id ? { borderColor: accentColor } : {}}
+                              onClick={() => setEnding(ending === e.id ? null : e.id)}>{e.label}</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                        <div style={{ flex: 1 }}>
+                          <div className="section-title">시점</div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            {POVS.map(p => (
+                              <button key={p.id} className={`opt-btn${pov === p.id ? " selected" : ""}`}
+                                style={pov === p.id ? { borderColor: accentColor } : {}}
+                                onClick={() => setPov(p.id)}>
+                                <div style={{ fontWeight: 600, fontSize: 13 }}>{p.label}</div>
+                                <div style={{ fontSize: 10, color: "#7a6a8a" }}>{p.desc}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div className="section-title">수위</div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            {RATINGS.map(r => (
+                              <button key={r.id} className={`opt-btn${rating === r.id ? " selected" : ""}`}
+                                style={rating === r.id ? { borderColor: r.id === "adult" ? "#f87171" : accentColor } : {}}
+                                onClick={() => setRating(r.id)}>
+                                <div style={{ fontWeight: 600, fontSize: 12, color: r.id === "adult" && rating === r.id ? "#fca5a5" : "inherit" }}>{r.label}</div>
+                                <div style={{ fontSize: 10, color: "#7a6a8a" }}>{r.desc}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {error && <div style={{ color: "#f87171", fontSize: 13, marginBottom: 16, textAlign: "center" }}>⚠️ {error}</div>}
+
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button className="btn btn-outline" style={{ flex: 1, padding: 14 }} onClick={() => setFormStep(2)}>← 이전</button>
+                        <button className="btn btn-primary" style={{ flex: 2, padding: 16, fontSize: 16, borderRadius: 14 }} onClick={generateNovel} disabled={loading || !genre}>
+                          {loading ? <><span className="spinner" /> 생성 중...</> : `✨ ${currentEpisode}화 생성하기`}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
