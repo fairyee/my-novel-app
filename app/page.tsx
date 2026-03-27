@@ -341,20 +341,114 @@ export default function Home() {
     setTimeout(() => setSaveMsg(""), 3000);
   }
 
+  // 장르별 금지/필수 표현 프리셋
+  function getStyleGuide() {
+    const base = `
+[절대 금지]
+- "숨이 멎을 듯했다", "눈물이 차올랐다", "가슴이 두근거렸다" 같은 상투적 감정 표현
+- 감정을 직접 해설하는 문장 ("그녀는 슬펐다", "그는 설레었다")
+- 웹툰식 가벼운 대사체 ("헉!", "어머?!", "세상에나")
+- 장면 요약식 전개 ("그렇게 시간이 흘렀다")
+- 인물 감정 반복 설명
+- 과한 독백
+- 마크다운, 소제목, 별표
+
+[반드시 지킬 것]
+- 감정은 행동, 시선, 침묵, 선택으로 보여줄 것
+- 각 장면엔 목적과 긴장이 있어야 함
+- 대사 뒤 감정 해설 최소화
+- 문장은 짧고 선명하게, 리듬감 있게
+- 첫 문단부터 장면 안으로 바로 들어갈 것`;
+
+    const genreGuides: Record<string, string> = {
+      "💕 로맨스": "\n[로맨스 특화]\n- 감정은 절제할수록 강해짐. 설레임을 직접 쓰지 말 것\n- 두 인물 사이의 긴장은 말보다 거리, 시선, 손끝으로",
+      "🧙 판타지": "\n[판타지 특화]\n- 세계관 설명을 장면 안에 자연스럽게 녹일 것\n- 마법/능력은 설명하지 말고 보여줄 것",
+      "⚔️ 무협": "\n[무협 특화]\n- 전투는 심리전으로. 기술 나열 금지\n- 의리, 복수, 명예의 무게를 행동으로",
+      "🔪 스릴러/호러": "\n[스릴러 특화]\n- 공포는 직접 묘사보다 암시로\n- 긴장은 정보의 비대칭에서 나옴",
+      "🔍 미스터리": "\n[미스터리 특화]\n- 단서는 자연스럽게 심어둘 것\n- 독자가 먼저 눈치채게 유도",
+    };
+
+    const genreLabel = selectedGenre?.label || "";
+    const genreExtra = Object.entries(genreGuides).find(([k]) => genreLabel.includes(k.slice(2)))?.[1] || "";
+    return base + genreExtra;
+  }
+
   async function generateNovel() {
     setError(""); setLoading(true); setStep("result"); setNovel(""); setIsEditing(false); setSaveMsg("");
+
     const ratingLabel = rating === "all" ? "전체가" : rating === "teen" ? "15세 이상" : "성인 (암시 포함)";
-    const styleLabel = STYLES.find(s => s.id === style)?.label || "자유";
-    const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "자유";
+    const styleGuide = getStyleGuide();
     const charDesc = characters.filter(c => c.name || c.desc).map(c => `- ${c.role} ${c.name || "이름없음"}: ${c.desc || "설정없음"}`).join("\n");
-    const prompt = `당신은 감성적이고 몰입감 있는 한국 소설 작가입니다. 아래 설정으로 ${currentEpisode}화 소설을 한국어로 써주세요.\n${seriesTitle ? `시리즈 제목: ${seriesTitle}` : ""}\n${title ? `이번 화 제목: ${title}` : ""}\n장르: ${selectedGenre?.label || "자유"}\n태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "자유"}\n문체: ${styleLabel}\n결말 방향: ${endingLabel}\n수위: ${ratingLabel}\n시점: ${pov === "first" ? "1인칭" : "3인칭"}\n${synopsis ? `줄거리/설정: ${synopsis}` : ""}\n${charDesc ? `등장인물:\n${charDesc}` : ""}\n분량: 1500자 이상, 반드시 완성된 문장으로 끝낼 것\n규칙: 제목을 먼저 쓰고 한 줄 띄우기. 생생한 묘사와 대화 포함. 마크다운 없이 순수 텍스트로.`;
+    const povLabel = pov === "first" ? "1인칭 (나는...)" : "3인칭 제한 시점";
+    const styleLabel = STYLES.find(s => s.id === style)?.label || "";
+    const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "";
+
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 3000 }) });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setNovel(data.text); setEditedNovel(data.text);
+      // ── 1단계: 회차 설계 ──────────────────────────────
+      const planPrompt = `너는 장르소설 회차 설계 전문가다. 아래 정보를 바탕으로 이번 화 설계를 해라.
+
+<작품정보>
+${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
+${title ? `이번 화 제목: ${title}` : ""}
+장르: ${selectedGenre?.label || "자유"}
+태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
+${styleLabel ? `문체 방향: ${styleLabel}` : ""}
+${endingLabel ? `결말 방향: ${endingLabel}` : ""}
+수위: ${ratingLabel}
+시점: ${povLabel}
+${synopsis ? `줄거리/배경: ${synopsis}` : ""}
+${charDesc ? `등장인물:\n${charDesc}` : ""}
+</작품정보>
+
+아래 형식으로만 출력해라:
+1. 이번 화 핵심 목표 (독자에게 전달할 감정/사건 1줄)
+2. 장면 구성 3~4개 (각 장면: 누가/어디서/무엇을 원함/무엇이 막음)
+3. 감정 흐름 (시작감정 → 중간변화 → 끝감정)
+4. 마지막 훅 한 줄 (다음 화를 보게 만드는 문장 아이디어)
+5. 절대 쓰면 안 되는 전개 2가지`;
+
+      const planRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: planPrompt, tokens: 600 }) });
+      const planData = await planRes.json();
+      if (planData.error) throw new Error(planData.error);
+      const episodePlan = planData.text;
+
+      // ── 2단계: 본문 집필 ──────────────────────────────
+      const writePrompt = `너는 한국 장르소설 전문 작가다. 아래 회차 설계를 바탕으로 실제 소설 본문을 써라.
+
+<회차설계>
+${episodePlan}
+</회차설계>
+
+<작품정보>
+${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
+${title ? `이번 화 제목: ${title}` : ""}
+장르: ${selectedGenre?.label || "자유"}
+태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
+시점: ${povLabel}
+수위: ${ratingLabel}
+${synopsis ? `줄거리/배경: ${synopsis}` : ""}
+${charDesc ? `등장인물:\n${charDesc}` : ""}
+</작품정보>
+
+<문체규칙>
+${styleGuide}
+</문체규칙>
+
+<출력규칙>
+- 제목을 첫 줄에 쓰고 한 줄 띄운 뒤 본문 시작
+- 분량: 1800자 이상
+- 반드시 완성된 문장으로 끝낼 것
+- 소설 본문만 출력. 설명, 해설, 메모 금지
+</출력규칙>`;
+
+      const writeRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: writePrompt, tokens: 4000 }) });
+      const writeData = await writeRes.json();
+      if (writeData.error) throw new Error(writeData.error);
+      setNovel(writeData.text); setEditedNovel(writeData.text);
+
+      // ── 작품소개 자동생성 ─────────────────────────────
       if (!synopsis.trim()) {
-        const synRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `아래 소설의 작품소개를 2~3문장으로 써주세요. 독자의 호기심을 자극하되 스포일러는 피하고, 감성적인 한국어로. 소개글만 출력하고 다른 말은 하지 마세요.\n\n${data.text.slice(0, 800)}`, tokens: 300 }) });
+        const synRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `아래 소설의 작품소개를 2~3문장으로 써주세요. 독자의 호기심을 자극하되 스포일러는 피하고, 감성적인 한국어로. 소개글만 출력하고 다른 말은 하지 마세요.\n\n${writeData.text.slice(0, 800)}`, tokens: 300 }) });
         const synData = await synRes.json();
         if (!synData.error) setSynopsis(synData.text.trim());
       }
@@ -374,12 +468,62 @@ export default function Home() {
     }
     const nextEp = currentEpisode + 1;
     setCurrentEpisode(nextEp); setNovel(""); setEditedNovel(""); setIsEditing(false); setSaveMsg(""); setLoading(true);
-    const prompt = `당신은 한국 소설 작가입니다. 아래는 ${currentEpisode}화 내용입니다. 이 내용과 자연스럽게 이어지는 ${nextEp}화를 써주세요. 1500자 이상, 반드시 완성된 문장으로 끝낼 것. 이전 내용을 반복하지 말고 새로운 장면으로 시작. 마크다운 없이 순수 텍스트로.\n\n이전 화:\n${currentText}`;
+
+    const styleGuide = getStyleGuide();
+    const prevSummary = (isEditing ? editedNovel : novel).slice(-800); // 이전 화 마지막 부분
+
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 3000 }) });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setNovel(data.text); setEditedNovel(data.text);
+      // 1단계: 다음화 설계
+      const planPrompt = `너는 연재 장르소설 회차 설계 전문가다.
+
+<이전화내용(마지막부분)>
+${prevSummary}
+</이전화내용>
+
+<작품정보>
+장르: ${selectedGenre?.label || "자유"}
+태그: ${selectedTags.join(", ") || "없음"}
+시리즈: ${seriesTitle || ""}
+</작품정보>
+
+위 내용에서 자연스럽게 이어지는 ${nextEp}화 설계를 해라.
+1. 이번 화 핵심 목표 (이전 화에서 이어지는 감정/사건)
+2. 장면 구성 3~4개 (새로운 장면으로 시작, 이전 내용 반복 금지)
+3. 감정 흐름
+4. 마지막 훅 한 줄
+5. 절대 쓰면 안 되는 전개 2가지`;
+
+      const planRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: planPrompt, tokens: 500 }) });
+      const planData = await planRes.json();
+      if (planData.error) throw new Error(planData.error);
+
+      // 2단계: 본문 작성
+      const writePrompt = `너는 한국 장르소설 전문 작가다.
+
+<이전화내용(마지막부분)>
+${prevSummary}
+</이전화내용>
+
+<${nextEp}화설계>
+${planData.text}
+</${nextEp}화설계>
+
+<문체규칙>
+${styleGuide}
+</문체규칙>
+
+<출력규칙>
+- 이전 화 내용을 반복하지 말고 새로운 장면으로 시작
+- 제목을 첫 줄에 쓰고 한 줄 띄운 뒤 본문
+- 분량: 1800자 이상
+- 반드시 완성된 문장으로 끝낼 것
+- 소설 본문만 출력
+</출력규칙>`;
+
+      const writeRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: writePrompt, tokens: 4000 }) });
+      const writeData = await writeRes.json();
+      if (writeData.error) throw new Error(writeData.error);
+      setNovel(writeData.text); setEditedNovel(writeData.text);
     } catch (e: any) { setError("오류: " + e.message); }
     finally { setLoading(false); }
   }
@@ -395,12 +539,63 @@ export default function Home() {
     setCurrentSeriesId(n.series_id || null); setCurrentEpisode(nextEp); setSeriesTitle(n.series_title || "");
     setNovel(""); setEditedNovel(""); setIsEditing(false); setSaveMsg("");
     setStep("result"); setView("create"); setReadingNovel(null); setLoading(true);
-    const prompt = `당신은 한국 소설 작가입니다. 아래는 ${n.episode_number || 1}화 내용입니다. 이 내용과 자연스럽게 이어지는 ${nextEp}화를 써주세요. 1500자 이상, 반드시 완성된 문장으로 끝낼 것. 이전 내용을 반복하지 말고 새로운 장면으로 시작. 마크다운 없이 순수 텍스트로.\n\n이전 화:\n${prevContent}`;
+
+    const prevSummary = prevContent.slice(-800);
+    const genreLabel = n.genre || "자유";
+
     try {
-      const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, tokens: 3000 }) });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setNovel(data.text); setEditedNovel(data.text);
+      // 1단계: 설계
+      const planPrompt = `너는 연재 장르소설 회차 설계 전문가다.
+
+<이전화내용(마지막부분)>
+${prevSummary}
+</이전화내용>
+
+<작품정보>
+장르: ${genreLabel}
+시리즈: ${n.series_title || ""}
+태그: ${n.tags || "없음"}
+</작품정보>
+
+위 내용에서 자연스럽게 이어지는 ${nextEp}화 설계:
+1. 이번 화 핵심 목표
+2. 장면 구성 3~4개
+3. 감정 흐름
+4. 마지막 훅 한 줄
+5. 절대 쓰면 안 되는 전개 2가지`;
+
+      const planRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: planPrompt, tokens: 500 }) });
+      const planData = await planRes.json();
+      if (planData.error) throw new Error(planData.error);
+
+      // 2단계: 본문
+      const styleGuide = getStyleGuide();
+      const writePrompt = `너는 한국 장르소설 전문 작가다.
+
+<이전화내용(마지막부분)>
+${prevSummary}
+</이전화내용>
+
+<${nextEp}화설계>
+${planData.text}
+</${nextEp}화설계>
+
+<문체규칙>
+${styleGuide}
+</문체규칙>
+
+<출력규칙>
+- 이전 화 내용을 반복하지 말고 새로운 장면으로 시작
+- 제목을 첫 줄에 쓰고 한 줄 띄운 뒤 본문
+- 분량: 1800자 이상
+- 반드시 완성된 문장으로 끝낼 것
+- 소설 본문만 출력
+</출력규칙>`;
+
+      const writeRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: writePrompt, tokens: 4000 }) });
+      const writeData = await writeRes.json();
+      if (writeData.error) throw new Error(writeData.error);
+      setNovel(writeData.text); setEditedNovel(writeData.text);
     } catch (e: any) { setError("오류: " + e.message); }
     finally { setLoading(false); }
   }
@@ -789,7 +984,11 @@ export default function Home() {
                   </div>
 
                   <div style={{ background: "#160f22", border: `1.5px solid ${isEditing ? accentColor + "66" : "#2d2040"}`, borderRadius: 16, padding: "24px 20px" }}>
-                    {loading && <div style={{ textAlign: "center", padding: "40px 0", color: "#5a4a6a" }}><div style={{ fontSize: 28, marginBottom: 12 }}>✍️</div><div>이야기를 쓰고 있어요...</div></div>}
+                    {loading && <div style={{ textAlign: "center", padding: "40px 0", color: "#5a4a6a" }}>
+                      <div style={{ fontSize: 28, marginBottom: 12 }}>✍️</div>
+                      <div style={{ marginBottom: 8 }}>이야기를 구성하고 있어요...</div>
+                      <div style={{ fontSize: 12, color: "#3a2a4a" }}>설계 → 집필 2단계로 더 좋은 글을 써드릴게요</div>
+                    </div>}
                     {!loading && isEditing && <textarea className="novel-editor" value={editedNovel} onChange={e => setEditedNovel(e.target.value)} style={{ height: Math.max(300, editedNovel.split("\n").length * 36) }} />}
                     {!loading && !isEditing && novel && <div style={{ lineHeight: 2.2, fontSize: 16, color: "#ddd4ee", whiteSpace: "pre-wrap", fontWeight: 300 }}>{novel}</div>}
                   </div>
