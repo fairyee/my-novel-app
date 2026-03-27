@@ -143,12 +143,24 @@ export default function Home() {
   async function fetchFavoriteNovels() {
     const { data: favData } = await supabase.from("likes").select("novel_id").eq("user_id", user.id);
     if (!favData || favData.length === 0) { setFavoriteNovels([]); return; }
-    const ids = favData.map((l: any) => l.novel_id);
-    const { data } = await supabase.from("novels").select("*").in("id", ids).order("created_at", { ascending: false });
-    if (!data) { setFavoriteNovels([]); return; }
+    const likedIds = favData.map((l: any) => l.novel_id);
+
+    // likes에 저장된 id로 직접 조회 + series_id로도 조회 (두 케이스 모두 커버)
+    const { data: directMatches } = await supabase.from("novels").select("*").in("id", likedIds);
+    // likes의 id가 series_id인 경우 → 해당 series의 1화를 가져옴
+    const { data: seriesMatches } = await supabase.from("novels").select("*").in("series_id", likedIds).order("episode_number", { ascending: true });
+
+    const allData = [...(directMatches || []), ...(seriesMatches || [])];
+    if (allData.length === 0) { setFavoriteNovels([]); return; }
+
+    // 중복 제거
+    const seen = new Set<string>();
+    const deduped = allData.filter(n => { if (seen.has(n.id)) return false; seen.add(n.id); return true; });
+
+    // 시리즈 그룹핑
     const seriesMap: Record<string, Novel[]> = {};
     const noSeries: Novel[] = [];
-    data.forEach((n: Novel) => {
+    deduped.forEach((n: Novel) => {
       if (n.series_id) { if (!seriesMap[n.series_id]) seriesMap[n.series_id] = []; seriesMap[n.series_id].push(n); }
       else noSeries.push(n);
     });
@@ -173,7 +185,11 @@ export default function Home() {
       favIds = new Set((favData || []).map((l: any) => l.novel_id));
     }
 
-    const withMeta = data.map((n: Novel) => ({ ...n, is_favorited: favIds.has(n.id) }));
+    const withMeta = data.map((n: Novel) => ({
+      ...n,
+      // series_id가 있으면 series_id로도 체크, 없으면 id로 체크
+      is_favorited: favIds.has(n.id) || (n.series_id ? favIds.has(n.series_id) : false),
+    }));
     const seriesMap: Record<string, Novel[]> = {};
     const noSeries: Novel[] = [];
     withMeta.forEach((n: Novel) => {
@@ -192,29 +208,47 @@ export default function Home() {
   }
 
   // ── 선호작 토글 ────────────────────────────────────────
+  // 시리즈물은 series_id를, 단편은 novel id를 저장
   async function toggleFavorite(target: Novel) {
     if (!user) { setShowAuth(true); return; }
 
-    // ✅ 카드 자체 id 사용 (episodes[0].id 참조 제거 — 이게 버그 원인이었음)
-    const targetId = target.id;
+    // 시리즈면 series_id 기준으로, 단편이면 novel id 사용
+    // series_id가 있으면 반드시 series_id를 key로 씀
+    const saveId = target.series_id || target.id;
     const nextFav = !target.is_favorited;
 
     // 낙관적 UI 업데이트
-    setPublicNovels(prev => prev.map(item =>
-      item.id === targetId ? { ...item, is_favorited: nextFav } : item
-    ));
-    if (seriesDetail?.id === targetId) {
-      setSeriesDetail({ ...seriesDetail, is_favorited: nextFav });
+    setPublicNovels(prev => prev.map(item => {
+      const itemKey = item.series_id || item.id;
+      return itemKey === saveId ? { ...item, is_favorited: nextFav } : item;
+    }));
+    if (seriesDetail) {
+      const sdKey = seriesDetail.series_id || seriesDetail.id;
+      if (sdKey === saveId) setSeriesDetail({ ...seriesDetail, is_favorited: nextFav });
     }
 
-    // DB 저장
+    // DB: 기존 항목 먼저 삭제 후 insert (중복 방지)
     if (nextFav) {
-      await supabase.from("likes").insert({ user_id: user.id, novel_id: targetId });
+      // 같은 series_id로 저장된 기존 likes 모두 제거 후 새로 insert
+      if (target.series_id) {
+        // series의 모든 episode id 가져와서 기존 likes 정리
+        const { data: eps } = await supabase.from("novels").select("id").eq("series_id", target.series_id);
+        if (eps && eps.length > 0) {
+          await supabase.from("likes").delete().eq("user_id", user.id).in("novel_id", eps.map((e: any) => e.id));
+        }
+      }
+      await supabase.from("likes").insert({ user_id: user.id, novel_id: saveId });
     } else {
-      await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", targetId);
+      // 삭제 시: saveId 직접 + series 전체 id도 정리
+      await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", saveId);
+      if (target.series_id) {
+        const { data: eps } = await supabase.from("novels").select("id").eq("series_id", target.series_id);
+        if (eps && eps.length > 0) {
+          await supabase.from("likes").delete().eq("user_id", user.id).in("novel_id", eps.map((e: any) => e.id));
+        }
+      }
     }
 
-    // ✅ await로 순서 보장해서 목록 동기화
     await fetchFavoriteNovels();
     await fetchPublicNovels();
   }
