@@ -191,33 +191,32 @@ export default function Home() {
     setPublicNovels(all);
   }
 
-  // ── 선호작 토글 (버그 수정: fetchPublicNovels 추가) ────
+  // ── 선호작 토글 ────────────────────────────────────────
   async function toggleFavorite(target: Novel) {
     if (!user) { setShowAuth(true); return; }
-    const targetId = target._episodes?.[0]?.id ?? target.id;
+
+    // ✅ 카드 자체 id 사용 (episodes[0].id 참조 제거 — 이게 버그 원인이었음)
+    const targetId = target.id;
     const nextFav = !target.is_favorited;
 
-    // 낙관적 UI
-    const updateItem = (item: Novel) => {
-      const itemId = item._episodes?.[0]?.id ?? item.id;
-      return itemId === targetId ? { ...item, is_favorited: nextFav } : item;
-    };
-    setPublicNovels(prev => prev.map(updateItem));
-    if (seriesDetail) {
-      const sdId = seriesDetail._episodes?.[0]?.id ?? seriesDetail.id;
-      if (sdId === targetId) setSeriesDetail({ ...seriesDetail, is_favorited: nextFav });
+    // 낙관적 UI 업데이트
+    setPublicNovels(prev => prev.map(item =>
+      item.id === targetId ? { ...item, is_favorited: nextFav } : item
+    ));
+    if (seriesDetail?.id === targetId) {
+      setSeriesDetail({ ...seriesDetail, is_favorited: nextFav });
     }
 
-    // DB
+    // DB 저장
     if (nextFav) {
       await supabase.from("likes").insert({ user_id: user.id, novel_id: targetId });
     } else {
       await supabase.from("likes").delete().eq("user_id", user.id).eq("novel_id", targetId);
     }
 
-    // ✅ 버그 수정: 둘 다 새로고침
-    fetchFavoriteNovels();
-    fetchPublicNovels();
+    // ✅ await로 순서 보장해서 목록 동기화
+    await fetchFavoriteNovels();
+    await fetchPublicNovels();
   }
 
   // ── Reading ───────────────────────────────────────────
@@ -880,7 +879,7 @@ export default function Home() {
               ) : (
                 favoriteNovels.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "60px 0", color: "#5a4a6a" }}>
-                    <div style={{ fontSize: 40, marginBottom: 12 }}>🔖</div>
+                    <div style={{ fontSize: 32, marginBottom: 12, lineHeight: 1 }}>🔖</div>
                     <div>아직 선호작이 없어요</div>
                   </div>
                 ) : favoriteNovels.map(n => (

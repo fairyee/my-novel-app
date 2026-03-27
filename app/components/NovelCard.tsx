@@ -22,9 +22,9 @@ export default function NovelCard({ n, showActions = false, user, onOpen, onSeri
   const handleClick = () => {
     if (showActions) {
       const epList = episodes.length > 0 ? episodes : [n];
-      onSeriesDetail({ ...n, _episodes: epList, _isMine: true, is_favorited: false }, true);
+      onSeriesDetail({ ...n, _episodes: epList, _isMine: true }, true);
     } else if (episodes.length > 0) {
-      onSeriesDetail({ ...n, _episodes: episodes, _isMine: false, is_favorited: false }, false);
+      onSeriesDetail({ ...n, _episodes: episodes, _isMine: false }, false);
     } else {
       onOpen(n, false);
     }
