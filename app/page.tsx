@@ -735,6 +735,11 @@ ${styleGuide}
 
   return (
     <>
+      <head>
+        <meta name="google-site-verification" content="W7-hf9aHSK_uBpsABsS8vZ4Dj9vaM1Vi8oKGDlO4HH0" />
+        <title>Novella - AI 웹소설 생성기</title>
+        <meta name="description" content="AI가 대신 써주는 웹소설. BL, 로맨스, 판타지 무료 생성." />
+      </head>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
