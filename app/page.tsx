@@ -53,14 +53,17 @@ export default function Home() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [blRole, setBlRole] = useState<string | null>(null); // BL 공수
-  const [glRole, setGlRole] = useState<string | null>(null); // GL 역할
+  const [glRole, setGlRole] = useState<string | null>(null);
   const [style, setStyle] = useState<string | null>(null);
   const [ending, setEnding] = useState<string | null>(null);
   const [rating, setRating] = useState("all");
   const [pov, setPov] = useState("third");
   const [title, setTitle] = useState("");
   const [seriesTitle, setSeriesTitle] = useState("");
-  const [synopsis, setSynopsis] = useState("");
+  const [synopsis, setSynopsis] = useState(""); // 사용자 줄거리 입력
+  const [generatedSynopsis, setGeneratedSynopsis] = useState(""); // AI 생성 작품소개
+  const [editingSynopsis, setEditingSynopsis] = useState(false);
+  const [customBackground, setCustomBackground] = useState(""); // 배경 직접 입력
   const [characters, setCharacters] = useState<Character[]>([{ id: 1, name: "", desc: "", role: "주인공", age: "", gender: "" }]);
   const [isPublic, setIsPublic] = useState(false);
   const [currentSeriesId, setCurrentSeriesId] = useState<string | null>(null);
@@ -331,13 +334,14 @@ export default function Home() {
     const novelTitle = title || content.split("\n")[0] || "제목 없음";
     const sid = currentSeriesId || crypto.randomUUID();
     if (!currentSeriesId) setCurrentSeriesId(sid);
+    const saveSynopsis = generatedSynopsis || synopsis || null;
     const { data: existing } = await supabase.from("novels").select("id").eq("series_id", sid).eq("episode_number", currentEpisode).maybeSingle();
     let err = null;
     if (existing) {
-      const { error } = await supabase.from("novels").update({ content, title: novelTitle, is_public: isPublic, synopsis: synopsis || null }).eq("id", existing.id);
+      const { error } = await supabase.from("novels").update({ content, title: novelTitle, is_public: isPublic, synopsis: saveSynopsis }).eq("id", existing.id);
       err = error;
     } else {
-      const { error } = await supabase.from("novels").insert({ user_id: user.id, title: novelTitle, content, genre: selectedGenre?.label || "", tags: selectedTags.join(", "), is_public: isPublic, views: 0, series_id: sid, episode_number: currentEpisode, series_title: seriesTitle || novelTitle, cover_image: coverImage || null, synopsis: synopsis || null, created_at: new Date().toISOString() });
+      const { error } = await supabase.from("novels").insert({ user_id: user.id, title: novelTitle, content, genre: selectedGenre?.label || "", tags: selectedTags.join(", "), is_public: isPublic, views: 0, series_id: sid, episode_number: currentEpisode, series_title: seriesTitle || novelTitle, cover_image: coverImage || null, synopsis: saveSynopsis, created_at: new Date().toISOString() });
       err = error;
     }
     setSaveMsg(err ? "저장 실패 😢" : `${currentEpisode}화 저장됐어요! ✅`);
@@ -388,7 +392,7 @@ export default function Home() {
     }).join("\n");
     const blGlInfo = genre === "bl" && blRole ? `BL 공수: ${BL_ROLES.find(r => r.id === blRole)?.label || ""}` :
                      genre === "gl" && glRole ? `GL 관계: ${GL_ROLES.find(r => r.id === glRole)?.label || ""}` : "";
-    const backgroundInfo = selectedBackground ? `배경: ${selectedBackground}` : "";
+    const backgroundInfo = [selectedBackground, customBackground].filter(Boolean).join(", ");
     const povLabel = pov === "first" ? "1인칭 (나는...)" : "3인칭 제한 시점";
     const styleLabel = STYLES.find(s => s.id === style)?.label || "";
     const endingLabel = ENDINGS.find(e => e.id === ending)?.label || "";
@@ -402,7 +406,7 @@ ${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
 ${title ? `이번 화 제목: ${title}` : ""}
 장르: ${selectedGenre?.label || "자유"}
 태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
-${backgroundInfo}
+${backgroundInfo ? `배경: ${backgroundInfo}` : ""}
 ${blGlInfo}
 ${styleLabel ? `문체 방향: ${styleLabel}` : ""}
 ${endingLabel ? `결말 방향: ${endingLabel}` : ""}
@@ -436,6 +440,7 @@ ${seriesTitle ? `시리즈: ${seriesTitle}` : ""}
 ${title ? `이번 화 제목: ${title}` : ""}
 장르: ${selectedGenre?.label || "자유"}
 태그: ${selectedTags.length > 0 ? selectedTags.join(", ") : "없음"}
+${backgroundInfo ? `배경: ${backgroundInfo}` : ""}
 시점: ${povLabel}
 수위: ${ratingLabel}
 ${synopsis ? `줄거리/배경: ${synopsis}` : ""}
@@ -447,6 +452,7 @@ ${styleGuide}
 </문체규칙>
 
 <출력규칙>
+- 이번 화 제목은 웹소설 감성으로 세련되고 매력적으로 (예: "그 계절의 온도", "달이 지는 쪽으로", "당신의 봄이 되고 싶었다")
 - 제목을 첫 줄에 쓰고 한 줄 띄운 뒤 본문 시작
 - 분량: 1800자 이상
 - 반드시 완성된 문장으로 끝낼 것
@@ -458,11 +464,22 @@ ${styleGuide}
       if (writeData.error) throw new Error(writeData.error);
       setNovel(writeData.text); setEditedNovel(writeData.text);
 
-      // ── 작품소개 자동생성 ─────────────────────────────
-      if (!synopsis.trim()) {
-        const synRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `아래 소설의 작품소개를 2~3문장으로 써주세요. 독자의 호기심을 자극하되 스포일러는 피하고, 감성적인 한국어로. 소개글만 출력하고 다른 말은 하지 마세요.\n\n${writeData.text.slice(0, 800)}`, tokens: 300 }) });
-        const synData = await synRes.json();
-        if (!synData.error) setSynopsis(synData.text.trim());
+      // ── 작품소개 AI 생성 (줄거리와 분리, 항상 새로 생성) ──
+      const synopsisPrompt = `너는 웹소설 편집자다. 아래 소설을 읽고 독자를 사로잡는 작품소개를 써라.
+규칙: 2~3문장, 스포일러 없이 분위기와 감정선만 암시, "읽고 싶다"는 느낌, 상투적 표현 금지, 소개글만 출력.
+소설: ${writeData.text.slice(0, 1000)}`;
+      const synRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: synopsisPrompt, tokens: 300 }) });
+      const synData = await synRes.json();
+      if (!synData.error) setGeneratedSynopsis(synData.text.trim());
+
+      // ── 시리즈 제목 자동생성 (비어있을 때) ──────────────
+      if (!seriesTitle.trim()) {
+        const titlePrompt = `웹소설 제목 전문가로서, 아래 소설에 어울리는 세련된 시리즈 제목을 지어라.
+규칙: 5~15자, 감성적이고 여운이 남는 한국어, 좋은예("그날 밤 우리가 선택한 것","봄이 오면 당신을 잊겠습니다"), 나쁜예("로맨스1화","사랑이야기"), 제목만 한 줄 출력.
+소설: ${writeData.text.slice(0, 400)}`;
+        const titleRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: titlePrompt, tokens: 50 }) });
+        const titleData = await titleRes.json();
+        if (!titleData.error) setSeriesTitle(titleData.text.trim().replace(/["'「」『』]/g, ""));
       }
     } catch (e: any) { setError("오류: " + e.message); setStep("form"); }
     finally { setLoading(false); }
@@ -671,7 +688,8 @@ ${styleGuide}
   function resetForm() {
     setStep("form"); setFormStep(1); setNovel(""); setEditedNovel(""); setIsEditing(false);
     setCurrentSeriesId(null); setCurrentEpisode(1); setSaveMsg("");
-    setTitle(""); setSynopsis(""); setCoverImage(null);
+    setTitle(""); setSynopsis(""); setGeneratedSynopsis(""); setEditingSynopsis(false);
+    setCoverImage(null); setCustomBackground("");
     setGenre(null); setSelectedBackground(null); setSelectedTags([]);
     setBlRole(null); setGlRole(null); setStyle(null); setEnding(null);
   }
@@ -1033,7 +1051,7 @@ ${styleGuide}
                       {genre && BACKGROUNDS[genre] && (
                         <div className="section">
                           <div className="section-title">배경</div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
                             {BACKGROUNDS[genre].map(bg => (
                               <button key={bg}
                                 className={`tag-btn${selectedBackground === bg ? " selected" : ""}`}
@@ -1041,6 +1059,12 @@ ${styleGuide}
                                 {bg}
                               </button>
                             ))}
+                          </div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input className="input-field" style={{ resize: "none", fontSize: 13 }}
+                              placeholder="직접 입력 (예: 조선시대 궁궐, 미래 도시)"
+                              value={customBackground}
+                              onChange={e => setCustomBackground(e.target.value)} />
                           </div>
                         </div>
                       )}
@@ -1249,7 +1273,30 @@ ${styleGuide}
 
                   {!loading && novel && (
                     <>
-                      <div style={{ margin: "14px 0", padding: "12px 14px", background: "rgba(19,16,32,0.8)", borderRadius: 10, border: "1px solid #2e2048" }}>
+                      {/* 작품소개 (AI 생성, 수정 가능) */}
+                      {generatedSynopsis && (
+                        <div style={{ margin: "14px 0", padding: "14px", background: "rgba(19,16,32,0.8)", borderRadius: 12, border: "1px solid #332860" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                            <div style={{ fontSize: 11, color: "#d4bfff", fontWeight: 700, letterSpacing: "0.1em" }}>✨ 작품 소개</div>
+                            <button
+                              style={{ background: "none", border: "none", color: "#8878b0", fontSize: 11, cursor: "pointer", fontFamily: "'Noto Serif KR', serif" }}
+                              onClick={() => setEditingSynopsis(!editingSynopsis)}>
+                              {editingSynopsis ? "완료" : "✏️ 수정"}
+                            </button>
+                          </div>
+                          {editingSynopsis ? (
+                            <textarea
+                              className="input-field"
+                              rows={3}
+                              value={generatedSynopsis}
+                              onChange={e => setGeneratedSynopsis(e.target.value)}
+                              style={{ fontSize: 13 }}
+                            />
+                          ) : (
+                            <div style={{ fontSize: 13, color: "#cdc5e8", lineHeight: 1.9 }}>{generatedSynopsis}</div>
+                          )}
+                        </div>
+                      )}
                         <div style={{ fontSize: 12, color: "#7a6a9a", marginBottom: 8 }}>🖼️ 시리즈 커버 이미지</div>
                         {coverImage ? (
                           <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
