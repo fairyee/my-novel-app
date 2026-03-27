@@ -166,9 +166,10 @@ export default function Home() {
     });
     const grouped = Object.values(seriesMap).map((eps) => {
       const sorted = [...eps].sort((a, b) => (a.episode_number || 0) - (b.episode_number || 0));
-      return { ...sorted[0], _episodes: sorted };
+      return { ...sorted[0], is_favorited: true, _episodes: sorted.map(ep => ({ ...ep, is_favorited: true })) };
     });
-    setFavoriteNovels([...grouped, ...noSeries]);
+    const noSeriesWithFav = noSeries.map(n => ({ ...n, is_favorited: true }));
+    setFavoriteNovels([...grouped, ...noSeriesWithFav]);
   }
 
   async function fetchPublicNovels() {
