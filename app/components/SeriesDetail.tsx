@@ -30,7 +30,7 @@ export default function SeriesDetail({
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#0d0a14", zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
-      <div style={{ maxWidth: 640, margin: "0 auto", paddingBottom: 40 }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", paddingBottom: 40 }}>
 
         {/* 헤더 */}
         <div style={{ position: "sticky", top: 0, background: "#0d0a14cc", backdropFilter: "blur(12px)", padding: "12px 16px", display: "flex", alignItems: "center", borderBottom: "1px solid #2d2040", zIndex: 10 }}>

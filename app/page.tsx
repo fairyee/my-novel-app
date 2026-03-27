@@ -719,9 +719,13 @@ ${styleGuide}
         @keyframes spin { to{transform:rotate(360deg)} }
         .spinner { display:inline-block; width:16px; height:16px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
         @media (max-width: 480px) { .genre-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+        /* 전체 페이지 너비 통일 */
+        .page-shell { width: 100%; max-width: 480px; margin: 0 auto; }
+        .fullscreen-overlay { position: fixed; inset: 0; background: #0d0a14; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .fullscreen-inner { max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
       `}</style>
 
-      <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh", maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ fontFamily: "'Noto Serif KR', serif", color: "#e8e0f0", minHeight: "100vh", maxWidth: 480, margin: "0 auto", width: "100%" }}>
 
         {/* 헤더 */}
         <header style={{ position: "sticky", top: 0, zIndex: 50, background: "#0d0a14cc", backdropFilter: "blur(12px)", borderBottom: "1px solid #2d2040", padding: "0 16px" }}>
