@@ -147,7 +147,13 @@ export default function Home() {
       else noSeries.push(n);
     });
     const grouped = Object.values(seriesMap).map((eps) => ({ ...eps[0], _episodes: eps }));
-    setMyNovels([...grouped, ...noSeries]);
+    // 선호작 수 추가
+    const withCount = await Promise.all([...grouped, ...noSeries].map(async (n) => {
+      const saveId = n.series_id || n.id;
+      const { count } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("novel_id", saveId);
+      return { ...n, likes_count: count || 0 };
+    }));
+    setMyNovels(withCount);
   }
 
   async function fetchFavoriteNovels() {
@@ -196,10 +202,15 @@ export default function Home() {
       favIds = new Set((favData || []).map((l: any) => l.novel_id));
     }
 
-    const withMeta = data.map((n: Novel) => ({
-      ...n,
-      // series_id가 있으면 series_id로도 체크, 없으면 id로 체크
-      is_favorited: favIds.has(n.id) || (n.series_id ? favIds.has(n.series_id) : false),
+    const withMeta = await Promise.all(data.map(async (n: Novel) => {
+      const saveId = n.series_id || n.id;
+      // 선호작 수 카운트
+      const { count } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("novel_id", saveId);
+      return {
+        ...n,
+        is_favorited: favIds.has(n.id) || (n.series_id ? favIds.has(n.series_id) : false),
+        likes_count: count || 0,
+      };
     }));
     const seriesMap: Record<string, Novel[]> = {};
     const noSeries: Novel[] = [];

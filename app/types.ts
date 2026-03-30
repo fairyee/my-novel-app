@@ -91,6 +91,7 @@ export interface Novel {
   is_public: boolean; created_at: string; views: number;
   series_id?: string; episode_number?: number; series_title?: string;
   is_favorited?: boolean;
+  likes_count?: number;
   cover_image?: string;
   synopsis?: string;
   _episodes?: Novel[];

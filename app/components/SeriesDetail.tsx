@@ -71,6 +71,11 @@ export default function SeriesDetail({
             >
               {seriesDetail.is_favorited ? "🔖" : "📎"}
               <span>{seriesDetail.is_favorited ? "선호작 취소" : "선호작 추가"}</span>
+              {(seriesDetail.likes_count ?? 0) > 0 && (
+                <span style={{ background: "rgba(155,109,255,0.2)", color: "#c4b8ff", borderRadius: 20, padding: "1px 8px", fontSize: 12, fontWeight: 600 }}>
+                  {seriesDetail.likes_count}
+                </span>
+              )}
             </button>
           )}
 

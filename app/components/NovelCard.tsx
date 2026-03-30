@@ -53,6 +53,11 @@ export default function NovelCard({ n, showActions = false, user, onOpen, onSeri
             {episodes.length > 0 && <span style={{ fontSize: 10, background: "#1a2d1f", color: "#6ee7b7", borderRadius: 20, padding: "2px 8px" }}>총 {episodes.length}화</span>}
           </div>
           <div style={{ fontSize: 13, color: "#a89ec0", lineHeight: 1.7 }}>{preview}</div>
+          {(n.likes_count ?? 0) > 0 && (
+            <div style={{ marginTop: 6, fontSize: 11, color: "#7a6a9a" }}>
+              🔖 선호작 <span style={{ color: "#a78bfa", fontWeight: 600 }}>{n.likes_count}</span>명
+            </div>
+          )}
         </div>
       </div>
     );
@@ -89,7 +94,7 @@ export default function NovelCard({ n, showActions = false, user, onOpen, onSeri
             style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: n.is_favorited ? "#f472b6" : "#6a5a8a", fontFamily: "'Noto Serif KR', serif", padding: 0 }}
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(n); }}
           >
-            {n.is_favorited ? "🔖 선호작" : "📎 선호작"}
+            {n.is_favorited ? "🔖" : "📎"} 선호작 {n.likes_count ? <span style={{ color: "#a78bfa", fontWeight: 600 }}>{n.likes_count}</span> : null}
           </button>
           <span style={{ marginLeft: "auto" }}>{new Date(n.created_at).toLocaleDateString("ko-KR")}</span>
         </div>
