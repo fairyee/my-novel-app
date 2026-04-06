@@ -8,13 +8,9 @@ export const GENRES = [
   { id: "drama",    label: "🏙️ 드라마",   color: "#6ee7b7" },
 ];
 
-// 나이대
 export const AGE_OPTIONS = ["10대", "20대", "30대+", "나이 불명"];
-
-// 성별
 export const GENDER_OPTIONS = ["남성", "여성", "중성/불명"];
 
-// 캐릭터 관계
 export const RELATIONSHIP_OPTIONS = [
   { id: "romance", label: "❤️ 로맨스" },
   { id: "hate",    label: "💔 애증" },
@@ -22,7 +18,6 @@ export const RELATIONSHIP_OPTIONS = [
   { id: "ally",    label: "🤝 협력" },
 ];
 
-// 장르별 태그 프리셋
 export const GENRE_TAGS: Record<string, string[]> = {
   romance: ["운명적 재회","계약 연애","소꿉친구","첫사랑","재벌×평민","신분차이","삼각관계","집착","츤데레","비밀연애","오해와 화해","직장 로맨스","학교생활","순정","빙의"],
   bl:      ["연상공","연하공","집착공","츤데레공","순정수","강수","오메가버스","알파×오메가","가이드버스","학원물","직장동료","소꿉친구","재벌×평민","운명의 짝","계약관계","숨겨진 정체"],
@@ -33,22 +28,19 @@ export const GENRE_TAGS: Record<string, string[]> = {
   drama:   ["가족갈등","성장","우정","직업드라마","재벌가","일상","힐링","청춘","사회고발"],
 };
 
-// BL 공수 옵션
 export const BL_ROLES = [
-  { id: "gong",    label: "공 (공격)" },
-  { id: "su",      label: "수 (수용)" },
-  { id: "howan",   label: "호환 (양방)" },
-  { id: "secret",  label: "비밀 (반전)" },
+  { id: "gong",   label: "공 (공격)" },
+  { id: "su",     label: "수 (수용)" },
+  { id: "howan",  label: "호환 (양방)" },
+  { id: "secret", label: "비밀 (반전)" },
 ];
 
-// GL 역할 옵션
 export const GL_ROLES = [
-  { id: "strong",  label: "강인한 쪽" },
-  { id: "soft",    label: "부드러운 쪽" },
-  { id: "howan",   label: "대등 (호환)" },
+  { id: "strong", label: "강인한 쪽" },
+  { id: "soft",   label: "부드러운 쪽" },
+  { id: "howan",  label: "대등 (호환)" },
 ];
 
-// 배경 태그
 export const BACKGROUNDS: Record<string, string[]> = {
   romance:  ["현대","캠퍼스","오피스","재벌가","궁정","이세계","역사"],
   bl:       ["현대","캠퍼스","오피스","연예계","군대","판타지","역사","오메가버스세계"],
@@ -60,12 +52,12 @@ export const BACKGROUNDS: Record<string, string[]> = {
 };
 
 export const STYLES = [
-  { id: "emotional",   label: "💔 감정 몰입",   desc: "눈물나는 스타일" },
-  { id: "fast",        label: "🔥 자극적 전개",  desc: "몰아치는 전개" },
-  { id: "dialogue",    label: "💬 대사 중심",    desc: "웹소설 스타일" },
-  { id: "cinematic",   label: "🎬 드라마 느낌",  desc: "영상처럼 읽힘" },
-  { id: "lyrical",     label: "🌸 감성 문학",    desc: "문학적인 문장" },
-  { id: "descriptive", label: "🎨 묘사 중심",    desc: "장면이 생생함" },
+  { id: "emotional",   label: "💔 감정 몰입",  desc: "눈물나는 스타일" },
+  { id: "fast",        label: "🔥 자극적 전개", desc: "몰아치는 전개" },
+  { id: "dialogue",    label: "💬 대사 중심",   desc: "웹소설 스타일" },
+  { id: "cinematic",   label: "🎬 드라마 느낌", desc: "영상처럼 읽힘" },
+  { id: "lyrical",     label: "🌸 감성 문학",   desc: "문학적인 문장" },
+  { id: "descriptive", label: "🎨 묘사 중심",   desc: "장면이 생생함" },
 ];
 
 export const ENDINGS = [
@@ -75,8 +67,8 @@ export const ENDINGS = [
 ];
 
 export const RATINGS = [
-  { id: "all",   label: "전체",  desc: "순애" },
-  { id: "adult", label: "19+",  desc: "성인 암시" },
+  { id: "all",   label: "전체", desc: "순애" },
+  { id: "adult", label: "19+", desc: "성인 암시" },
 ];
 
 export const POVS = [
@@ -84,7 +76,16 @@ export const POVS = [
   { id: "third", label: "3인칭", desc: "그는..." },
 ];
 
-export interface Character { id: number; name: string; desc: string; role: string; age: string; gender: string; relationship: string; }
+export interface Character {
+  id: number;
+  name: string;
+  desc: string;
+  role: string;
+  age: string;
+  gender: string;
+  relationship: string;
+  tone: string;
+}
 
 export interface Novel {
   id: string; title: string; content: string; genre: string; tags: string;
